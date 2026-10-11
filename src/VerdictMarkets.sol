@@ -60,6 +60,9 @@ contract VerdictMarkets is ReentrancyGuard {
         uint256 refunded;
         uint256 remainingPayout;
         uint256 remainingWinningStake;
+        bytes32[2] primaryRequests;
+        bytes32 escalationRequest;
+        uint256 escalationAskedAt;
     }
 
     error InvalidAddress();
@@ -69,6 +72,7 @@ contract VerdictMarkets is ReentrancyGuard {
     error NotPendingGuardian();
     error EntryPaused();
     error MustUnpause();
+    error MustDisableAllowlist();
     error AllowlistDisabled();
     error CreatorNotAllowed();
     error InvalidParams();
@@ -223,6 +227,7 @@ contract VerdictMarkets is ReentrancyGuard {
 
     function renounceGuardian() external onlyGuardian {
         if (paused) revert MustUnpause();
+        if (allowlistOn) revert MustDisableAllowlist();
         address previous = guardian;
         guardian = address(0);
         pendingGuardian = address(0);
@@ -282,7 +287,7 @@ contract VerdictMarkets is ReentrancyGuard {
         if (m.asks >= 2) revert AskLimit();
         if (m.asks != 0) {
             if (block.timestamp < m.lastPrimaryAsk + 24 hours) revert RetryNotReady();
-            if (oracle.lastDelivered(m.bodyHash) >= m.lastPrimaryAsk) revert AnswerAlreadyDelivered();
+            if (!oracle.hasPendingRequest(m.primaryRequests[0])) revert AnswerAlreadyDelivered();
         }
         m.lastPrimaryAsk = block.timestamp;
         requestId = _ask(id, m, body, false);
@@ -297,6 +302,7 @@ contract VerdictMarkets is ReentrancyGuard {
         if (keccak256(body) != m.escalationBodyHash) revert InvalidBody();
         if (m.asks >= 2) revert AskLimit();
         m.escalationAsked = true;
+        m.escalationAskedAt = block.timestamp;
         m.disputeEnds = Math.max(m.disputeEnds, block.timestamp + 24 hours);
         emit DisputeExtended(id, m.disputeEnds);
         requestId = _ask(id, m, body, true);
@@ -316,12 +322,22 @@ contract VerdictMarkets is ReentrancyGuard {
         }
         bytes32 expected = replacement ? m.escalationBodyHash : m.bodyHash;
         if (oracle.answerOf(a) != expected) revert UnauthenticatedAnswer();
+        bytes32 intakeRequestId = oracle.intakeRequestOf(a.requestId);
+        if (replacement) {
+            if (!m.escalationAsked || intakeRequestId != m.escalationRequest) revert UnauthenticatedAnswer();
+        } else if (
+            m.asks == 0
+                || (intakeRequestId != m.primaryRequests[0] && (m.asks < 2 || intakeRequestId != m.primaryRequests[1]))
+        ) {
+            revert UnauthenticatedAnswer();
+        }
         Params storage p = m.params;
         if (
             a.questionHash != p.questionHash || a.answerType != p.answerType || a.chainId != p.dataChainId
                 || a.fromBlock != p.fromBlock || a.toBlock != p.toBlock || a.panelSize < p.minPanelSize
                 || a.agreed < p.minAgreed || a.agreed < a.quorum || a.agreed > a.panelSize || a.quorum == 0
-                || a.issuedAt < p.answerFrom || a.issuedAt > p.answerUntil
+                || a.issuedAt < (replacement ? m.escalationAskedAt : p.answerFrom)
+                || a.issuedAt > (replacement ? m.disputeEnds : p.answerUntil)
         ) {
             revert InvalidAttestation();
         }
@@ -424,6 +440,8 @@ contract VerdictMarkets is ReentrancyGuard {
         requestId = oracle.request(body);
         collateral.forceApprove(address(oracle), 0);
         if (collateral.balanceOf(address(this)) != beforeBalance - cost) revert InexactOracleSpend();
+        if (escalation) m.escalationRequest = requestId;
+        else m.primaryRequests[m.asks - 1] = requestId;
         emit OracleAsked(id, requestId, escalation, cost);
     }
 
@@ -461,6 +479,7 @@ contract VerdictMarkets is ReentrancyGuard {
         }
         if (p.answerType == 3) {
             if (p.bounds.length == 0 || p.bounds.length > 7 || p.keys.length != 0) revert InvalidParams();
+            if (p.bounds[0] == 0) revert InvalidParams();
             for (uint256 i = 1; i < p.bounds.length; i++) {
                 if (p.bounds[i] <= p.bounds[i - 1]) revert InvalidParams();
             }

@@ -148,15 +148,23 @@ contract VerdictMarketsTest is TestBase {
         assertEq(uint256(markets.getMarket(id).status), uint256(VerdictMarkets.Status.Open));
     }
 
-    function test_externalSponsorCanDeliverPrimaryAndEscalation() public {
+    function test_externalSponsorCannotDeliverPrimaryOrEscalation() public {
         uint256 id = create();
         betAs(id, alice, 1, 11 ether);
         vm.warp(markets.getMarket(id).params.answerFrom);
         bytes32 rid = oracle.request(body);
         OracleAttestation.Attestation memory a = attestation(id, abi.encode(true), 5);
         deliver(rid, a);
+        vm.expectRevert(VerdictMarkets.UnauthenticatedAnswer.selector);
         markets.propose(id, a);
+        primary(id, true);
         rid = oracle.request(escalationBody);
+        a = attestation(id, abi.encode(true), 10);
+        deliver(rid, a);
+        vm.expectRevert(VerdictMarkets.UnauthenticatedAnswer.selector);
+        markets.propose(id, a);
+        assertFalse(markets.getMarket(id).escalationAsked);
+        rid = markets.escalate(id, escalationBody);
         a = attestation(id, abi.encode(true), 10);
         deliver(rid, a);
         markets.propose(id, a);
@@ -164,8 +172,8 @@ contract VerdictMarketsTest is TestBase {
         markets.finalize(id);
         vm.prank(alice);
         markets.claim(id);
-        assertEq(markets.getMarket(id).asks, 0);
-        assertEq(markets.getMarket(id).returnedBounty, 2 * PRICE);
+        assertEq(markets.getMarket(id).asks, 2);
+        assertEq(markets.getMarket(id).returnedBounty, 0);
         assertConserved(id, true);
     }
 

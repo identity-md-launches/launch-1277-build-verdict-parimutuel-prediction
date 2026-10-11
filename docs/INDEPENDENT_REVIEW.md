@@ -1,5 +1,7 @@
 # Verdict independent adversarial review
 
+**Historical review of the previously accepted implementation.** The reopened findings reproduced defects this report missed. Its source hashes and no-unresolved-finding conclusion apply only to that earlier version. See [REVISION_REVIEW.md](REVISION_REVIEW.md) for the targeted revision, current review, and remaining trust/liveness limits.
+
 Date: 2026-10-11. Reviewer: a separate automated reviewer agent, independent of the implementation author within this assignment. This is an independent code review and local adversarial test exercise, not an external human audit or a guarantee of safety. The reviewer did not modify application sources, access wallet credentials, or broadcast transactions.
 
 ## Result

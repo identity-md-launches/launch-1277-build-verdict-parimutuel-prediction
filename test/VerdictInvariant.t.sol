@@ -56,8 +56,7 @@ contract VerdictHandler is TestBase {
         ) return;
         if (
             m.asks == 1
-                && (block.timestamp < m.lastPrimaryAsk + 24 hours
-                    || oracle.lastDelivered(m.bodyHash) >= m.lastPrimaryAsk)
+                && (block.timestamp < m.lastPrimaryAsk + 24 hours || !oracle.hasPendingRequest(m.primaryRequests[0]))
         ) return;
         uint256 before = token.balanceOf(address(intake));
         primaryRequests[id] = markets.resolve(id, body);
@@ -102,7 +101,6 @@ contract VerdictHandler is TestBase {
         VerdictMarkets.Market memory m = markets.getMarket(id);
         if (rid == bytes32(0) || intake.attempted(rid)) return;
         OracleAttestation.Attestation memory a = attestation(id, abi.encode(side), 10);
-        if (a.issuedAt > m.params.answerUntil) a.issuedAt = m.params.answerUntil;
         deliver(rid, a);
         if (m.status == VerdictMarkets.Status.Provisional && !m.escalated && block.timestamp < m.disputeEnds) {
             markets.propose(id, a);

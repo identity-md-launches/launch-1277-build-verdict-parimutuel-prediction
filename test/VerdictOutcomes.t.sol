@@ -10,7 +10,7 @@ contract VerdictOutcomesTest is TestBase {
         uint256 id = createWith(p);
         vm.warp(p.answerFrom);
         OracleAttestation.Attestation memory a = attestation(id, answer, 5);
-        deliver(oracle.request(body), a);
+        deliver(markets.resolve(id, body), a);
         markets.propose(id, a);
         return markets.getMarket(id).outcome;
     }
@@ -129,7 +129,7 @@ contract VerdictOutcomesTest is TestBase {
         uint256 id = create();
         vm.warp(markets.getMarket(id).params.answerFrom);
         OracleAttestation.Attestation memory a = attestation(id, abi.encode(uint256(2)), 5);
-        deliver(oracle.request(body), a);
+        deliver(markets.resolve(id, body), a);
         vm.expectRevert();
         markets.propose(id, a);
         assertEq(uint256(markets.getMarket(id).status), uint256(VerdictMarkets.Status.Open));

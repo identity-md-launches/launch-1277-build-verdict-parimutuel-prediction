@@ -65,6 +65,7 @@ contract VerdictOracle is OracleAttestationConsumer, Ownable2Step, ReentrancyGua
     mapping(bytes32 => Result) public results;
     mapping(bytes32 => uint256) public lastDelivered;
     mapping(bytes32 => bool) public requested;
+    mapping(bytes32 => bytes32) public intakeRequestOf;
 
     constructor(
         address intake_,
@@ -131,6 +132,7 @@ contract VerdictOracle is OracleAttestationConsumer, Ownable2Step, ReentrancyGua
         delete pending[intakeRequestId];
         bytes32 attHash = keccak256(abi.encode(a));
         results[a.requestId] = Result(attHash, p.bodyHash);
+        intakeRequestOf[a.requestId] = intakeRequestId;
         lastDelivered[p.bodyHash] = block.timestamp;
         emit Answered(a.requestId, intakeRequestId, p.bodyHash, attHash);
     }
@@ -139,6 +141,10 @@ contract VerdictOracle is OracleAttestationConsumer, Ownable2Step, ReentrancyGua
     function answerOf(OracleAttestation.Attestation calldata a) external view returns (bytes32) {
         Result memory result = results[a.requestId];
         return result.attHash == keccak256(abi.encode(a)) ? result.bodyHash : bytes32(0);
+    }
+
+    function hasPendingRequest(bytes32 intakeRequestId) external view returns (bool) {
+        return pending[intakeRequestId].intake != address(0);
     }
 
     function proposeConfig(Config calldata c) external onlyOwner nonReentrant {

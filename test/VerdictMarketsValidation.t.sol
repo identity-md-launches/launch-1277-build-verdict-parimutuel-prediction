@@ -8,6 +8,8 @@ import {OracleAttestation} from "../src/OracleAttestation.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 contract VerdictMarketsValidationTest is TestBase {
+    bytes32 internal validationRequest;
+
     function test_pauseBlocksOnlyEntryAndRenounceRequiresUnpaused() public {
         uint256 id = create();
         uint256 unanswered = create();
@@ -36,6 +38,7 @@ contract VerdictMarketsValidationTest is TestBase {
         markets.voidMarket(unanswered);
         assertConserved(unanswered, true);
         markets.unpause();
+        markets.disableAllowlist();
         markets.renounceGuardian();
         assertEq(markets.guardian(), address(0));
         vm.expectRevert(VerdictMarkets.NotGuardian.selector);
@@ -264,7 +267,7 @@ contract VerdictMarketsValidationTest is TestBase {
         uint256 id = createWith(p);
         vm.warp(p.answerFrom);
         OracleAttestation.Attestation memory a = attestation(id, abi.encode(true), 7);
-        deliver(oracle.request(body), a);
+        deliver(markets.resolve(id, body), a);
         markets.propose(id, a);
         assertEq(markets.getMarket(id).panelSize, 7);
     }
@@ -272,6 +275,7 @@ contract VerdictMarketsValidationTest is TestBase {
     function test_attestationMustMatchEveryMarketFieldAndPanelRequirements() public {
         uint256 id = create();
         vm.warp(markets.getMarket(id).params.answerFrom);
+        validationRequest = markets.resolve(id, body);
         OracleAttestation.Attestation memory a = attestation(id, abi.encode(true), 5);
         a.questionHash = keccak256("wrong question");
         rejectAuthenticated(id, a);
@@ -313,16 +317,19 @@ contract VerdictMarketsValidationTest is TestBase {
     function test_escalationRequiresDoubleCurrentPanelAndCorrectBody() public {
         uint256 id = create();
         primary(id, true);
+        bytes32 rid = markets.escalate(id, escalationBody);
+        uint256 snapshot = vm.snapshotState();
         OracleAttestation.Attestation memory a = attestation(id, abi.encode(false), 9);
-        deliver(oracle.request(escalationBody), a);
+        deliver(rid, a);
         vm.expectRevert(VerdictMarkets.InvalidAttestation.selector);
         markets.propose(id, a);
+        assertTrue(vm.revertToState(snapshot));
         a = attestation(id, abi.encode(false), 10);
         deliver(oracle.request(body), a);
         vm.expectRevert(VerdictMarkets.UnauthenticatedAnswer.selector);
         markets.propose(id, a);
         a = attestation(id, abi.encode(false), 10);
-        deliver(oracle.request(escalationBody), a);
+        deliver(rid, a);
         markets.propose(id, a);
         assertTrue(markets.getMarket(id).escalated);
     }
@@ -331,7 +338,7 @@ contract VerdictMarketsValidationTest is TestBase {
         uint256 id = create();
         vm.warp(markets.getMarket(id).params.answerFrom);
         OracleAttestation.Attestation memory a = attestation(id, abi.encode(true), 5);
-        deliver(oracle.request(body), a);
+        deliver(markets.resolve(id, body), a);
         vm.warp(markets.getMarket(id).params.voidAfter);
         vm.expectRevert(VerdictMarkets.OutsideWindow.selector);
         markets.propose(id, a);
@@ -341,9 +348,11 @@ contract VerdictMarketsValidationTest is TestBase {
     }
 
     function rejectAuthenticated(uint256 id, OracleAttestation.Attestation memory a) internal {
-        deliver(oracle.request(body), a);
+        uint256 snapshot = vm.snapshotState();
+        deliver(validationRequest, a);
         vm.expectRevert(VerdictMarkets.InvalidAttestation.selector);
         markets.propose(id, a);
+        assertTrue(vm.revertToState(snapshot));
     }
 
     function expectInvalid(VerdictMarkets.Params memory p) internal {
