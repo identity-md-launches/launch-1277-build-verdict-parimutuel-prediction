@@ -1,0 +1,80 @@
+{
+  "checkedAt": "2026-10-11T07:36:50.701Z",
+  "siteLabel": "verdict",
+  "buildDirectory": "dist",
+  "exportBytes": 685145,
+  "prospectiveTreeBytesExcludingThisReport": 3894399,
+  "existingGitObjectBytes": 609976,
+  "conservativeBundleBudgetBytes": 4704375,
+  "maximumBundleBytes": 8388608,
+  "assertions": [
+    "Title/description/OG/favicon present",
+    "All runtime HTML/CSS assets relative and present",
+    "No dependency/cache directories or archives",
+    "No captured market fixtures in runtime JS",
+    "Existing build configuration and dependencies unchanged",
+    "Conservative bundle size below 8 MiB"
+  ],
+  "assets": [
+    {
+      "path": "dist/assets/chain-BQwdJvnv.js",
+      "bytes": 256983,
+      "sha256": "4d7f9e0c37fdf2fe47d99423cccf84f8287b2fe42570fb85bd73d85d4999d3d8"
+    },
+    {
+      "path": "dist/assets/index-GEEs5u5k.css",
+      "bytes": 33351,
+      "sha256": "01c73bb2ffefb025af7ec364d5b28e4d4500e310b4173eb62df853a8fd0d19de"
+    },
+    {
+      "path": "dist/assets/index-uAexNmRd.js",
+      "bytes": 112998,
+      "sha256": "846170968fb7eb08cacd109827abf7f6948f0868c2d3cd2ba60bf0f70401bfe0"
+    },
+    {
+      "path": "dist/assets/react-DbQ9GvLb.js",
+      "bytes": 186623,
+      "sha256": "08074b12979387427547a353d271c13799361da25d37a25b586743dc5f91bacc"
+    },
+    {
+      "path": "dist/favicon.svg",
+      "bytes": 452,
+      "sha256": "bfd6e6b19b784f9f82d04bc9d68207e271af4c44f48e0607e856692af487ef38"
+    },
+    {
+      "path": "dist/fonts/archivo-OFL.txt",
+      "bytes": 4388,
+      "sha256": "108b4e57c9c796d3d38d0428ca7ee39de47ad93187302718d9b2d8864b9b716b"
+    },
+    {
+      "path": "dist/fonts/archivo-expanded-800.woff2",
+      "bytes": 14536,
+      "sha256": "3e9ea98fbbb5bee26ce764e055a0624878a27284996c56a465783f35fcca17cd"
+    },
+    {
+      "path": "dist/fonts/ibm-plex-mono-400.woff2",
+      "bytes": 14708,
+      "sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7"
+    },
+    {
+      "path": "dist/fonts/ibm-plex-mono-500.woff2",
+      "bytes": 14888,
+      "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22"
+    },
+    {
+      "path": "dist/fonts/ibm-plex-mono-OFL.txt",
+      "bytes": 4456,
+      "sha256": "7e6b2818edbd8f6a01ae80641cc8f16a51080d08fb4e532be3a0b6f74adb07da"
+    },
+    {
+      "path": "dist/index.html",
+      "bytes": 1354,
+      "sha256": "39a625cbc5b093d3c2bf7ba7269b25375e2949f2d8efd2d0525fbf2335bd2b04"
+    },
+    {
+      "path": "dist/social.png",
+      "bytes": 40408,
+      "sha256": "de65858969671c3ec81937205f9eb48036f91f6b01c9870745041f8ad72659d0"
+    }
+  ]
+}

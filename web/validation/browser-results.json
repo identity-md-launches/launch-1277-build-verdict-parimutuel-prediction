@@ -1,0 +1,192 @@
+{
+  "checkedAt": "2026-10-11T07:31:20.536Z",
+  "url": "/preview/",
+  "browser": "154.0.8037.0",
+  "results": [
+    "Production title is exactly Verdict",
+    "RPC snapshot loaded",
+    "All three local font faces loaded",
+    "Status filter selects one Finalized market",
+    "Status filter selects the Voided market",
+    "Search empty state offers recovery",
+    "Pool sort orders the 15 IMD market before 5 IMD",
+    "Market 1 renders Final verdict Yes",
+    "Panel evidence links to a UUID job",
+    "Raw body disclosure shows original question JSON",
+    "Disconnected portfolio has a connect action",
+    "Wallet chooser explains missing injected provider",
+    "Escape closes wallet chooser",
+    "Wallet dialog restores focus",
+    "Agent ranking groups agent ID 0 as People",
+    "Create page explains on-chain allowlisting",
+    "Home reflows without document overflow at 390px",
+    "390px first screen shows product and primary action",
+    "Home reflows without document overflow at 360px",
+    "Home reflows without document overflow at 320px",
+    "Home reflows without document overflow at 820px",
+    "Market page reflows at 390px",
+    "Risks page reflows at 390px",
+    "Keyboard reaches visible skip link",
+    "Skip link moves focus to main",
+    "No uncaught browser errors",
+    "No failed local asset requests"
+  ],
+  "errors": [],
+  "requestFailures": [],
+  "rendered": [
+    {
+      "theme": "dark",
+      "pairs": [
+        {
+          "name": "Body text",
+          "foreground": "rgb(242, 239, 230)",
+          "background": "rgb(10, 15, 13)",
+          "ratio": 16.802,
+          "required": 4.5
+        },
+        {
+          "name": "Secondary text",
+          "foreground": "rgb(165, 182, 168)",
+          "background": "rgb(10, 15, 13)",
+          "ratio": 9.067,
+          "required": 4.5
+        },
+        {
+          "name": "Surface text",
+          "foreground": "rgb(165, 182, 168)",
+          "background": "rgb(17, 26, 21)",
+          "ratio": 8.336,
+          "required": 4.5
+        },
+        {
+          "name": "Primary button",
+          "foreground": "rgb(10, 15, 13)",
+          "background": "rgb(46, 230, 122)",
+          "ratio": 11.698,
+          "required": 4.5
+        },
+        {
+          "name": "Secondary button boundary",
+          "foreground": "rgb(102, 127, 107)",
+          "background": "rgb(17, 26, 21)",
+          "ratio": 4.07,
+          "required": 3
+        },
+        {
+          "name": "Large accent heading",
+          "foreground": "rgb(46, 230, 122)",
+          "background": "rgb(10, 15, 13)",
+          "ratio": 11.698,
+          "required": 3
+        }
+      ],
+      "heading": {
+        "family": "Archivo, Arial, sans-serif",
+        "weight": "800",
+        "stretch": "125%",
+        "size": "64px"
+      },
+      "label": {
+        "family": "\"IBM Plex Mono\", monospace",
+        "size": "13px"
+      },
+      "fonts": [
+        {
+          "family": "Archivo",
+          "weight": "800",
+          "stretch": "125%",
+          "status": "loaded"
+        },
+        {
+          "family": "IBM Plex Mono",
+          "weight": "400",
+          "stretch": "normal",
+          "status": "loaded"
+        },
+        {
+          "family": "IBM Plex Mono",
+          "weight": "500",
+          "stretch": "normal",
+          "status": "loaded"
+        }
+      ]
+    },
+    {
+      "theme": "light",
+      "pairs": [
+        {
+          "name": "Body text",
+          "foreground": "rgb(10, 15, 13)",
+          "background": "rgb(242, 239, 230)",
+          "ratio": 16.802,
+          "required": 4.5
+        },
+        {
+          "name": "Secondary text",
+          "foreground": "rgb(75, 96, 80)",
+          "background": "rgb(242, 239, 230)",
+          "ratio": 5.914,
+          "required": 4.5
+        },
+        {
+          "name": "Surface text",
+          "foreground": "rgb(75, 96, 80)",
+          "background": "rgb(233, 235, 226)",
+          "ratio": 5.649,
+          "required": 4.5
+        },
+        {
+          "name": "Primary button",
+          "foreground": "rgb(10, 15, 13)",
+          "background": "rgb(11, 143, 69)",
+          "ratio": 4.626,
+          "required": 4.5
+        },
+        {
+          "name": "Secondary button boundary",
+          "foreground": "rgb(107, 122, 104)",
+          "background": "rgb(233, 235, 226)",
+          "ratio": 3.785,
+          "required": 3
+        },
+        {
+          "name": "Large accent heading",
+          "foreground": "rgb(11, 143, 69)",
+          "background": "rgb(242, 239, 230)",
+          "ratio": 3.632,
+          "required": 3
+        }
+      ],
+      "heading": {
+        "family": "Archivo, Arial, sans-serif",
+        "weight": "800",
+        "stretch": "125%",
+        "size": "40px"
+      },
+      "label": {
+        "family": "\"IBM Plex Mono\", monospace",
+        "size": "13px"
+      },
+      "fonts": [
+        {
+          "family": "Archivo",
+          "weight": "800",
+          "stretch": "125%",
+          "status": "loaded"
+        },
+        {
+          "family": "IBM Plex Mono",
+          "weight": "400",
+          "stretch": "normal",
+          "status": "loaded"
+        },
+        {
+          "family": "IBM Plex Mono",
+          "weight": "500",
+          "stretch": "normal",
+          "status": "loaded"
+        }
+      ]
+    }
+  ]
+}

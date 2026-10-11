@@ -1,0 +1,76 @@
+{
+  "checkedAt": "2026-10-11T07:31:28.829Z",
+  "scope": "Deterministic mocked RPC and EIP-6963 wallet; no live transactions broadcast",
+  "results": [
+    "RPC fallback recovers after the primary endpoint fails",
+    "Wallet switches from the data chain to the configured market chain",
+    "Bet flow sends approval followed by bet",
+    "Approval is the exact amount to VerdictMarkets",
+    "Bet encodes id, selected outcome, amount and person agentId 0",
+    "Permissionless controls show simulation rejection reasons",
+    "Rejected settlement action is disabled",
+    "Automated accessibility scan: open market, connected wallet, dark",
+    "Open market with bet controls has no mobile overflow",
+    "Oversized bet is blocked before wallet submission",
+    "Wallet rejection is recoverable without a send",
+    "A rejected transaction notice can be dismissed",
+    "Create validation focuses the missing question",
+    "Evidence window warns when known before close",
+    "Create review renders 18-decimal bucket labels",
+    "Automated accessibility scan: creator review, desktop, dark",
+    "Creator form reflows at 390px",
+    "Create sends the reviewed params and compact primary/escalation bodies",
+    "Creator approves exactly the reviewed bounty",
+    "On-chain creator allowlist gates the builder",
+    "Portfolio reads stakes, totalStake and claimed, showing both positions",
+    "Unclaimed finalized winnings and voided refunds are actionable",
+    "Refund claim sends claim(market 2)",
+    "Automated accessibility scan: portfolio, mobile, dark",
+    "Automated accessibility scan: portfolio, desktop, light",
+    "Automated accessibility scan: home, light",
+    "Automated accessibility scan: risks, light",
+    "Automated accessibility scan: agent ranking, light",
+    "Request answer sends the simulated settlement call",
+    "Request answer uses the original MarketCreated bytes",
+    "Submit answer sends the simulated settlement call",
+    "Submit answer sends the recovered on-chain attestation",
+    "Escalate sends the simulated settlement call",
+    "Escalate uses the original MarketCreated bytes",
+    "Finalize sends the simulated settlement call",
+    "Refund sends the simulated settlement call",
+    "No uncaught browser errors in mocked wallet flows"
+  ],
+  "axeResults": [
+    {
+      "label": "open market, connected wallet, dark",
+      "violations": []
+    },
+    {
+      "label": "creator review, desktop, dark",
+      "violations": []
+    },
+    {
+      "label": "portfolio, mobile, dark",
+      "violations": []
+    },
+    {
+      "label": "portfolio, desktop, light",
+      "violations": []
+    },
+    {
+      "label": "home, light",
+      "violations": []
+    },
+    {
+      "label": "risks, light",
+      "violations": []
+    },
+    {
+      "label": "agent ranking, light",
+      "violations": []
+    }
+  ],
+  "errors": [],
+  "transactionCount": 10,
+  "requests": 455
+}

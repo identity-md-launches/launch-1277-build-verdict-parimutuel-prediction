@@ -1,0 +1,10 @@
+{
+  "sourceCommit": "3d603d480c490b93edb99cef51cac86692692541",
+  "compiler": "0.8.26",
+  "canonicalization": "Recursive lexicographic object-key ordering, preserved array order, compact JSON, UTF-8, keccak256",
+  "contracts": {
+    "VerdictMarkets": { "abiHash": "c943db34490c40d331a4d953b914ea42b36cfd6b7f441db573a71bff64910bc0", "configKey": "markets" },
+    "VerdictOracle": { "abiHash": "93003e764f176f31ae68d07892a13661d043c5cce6cf9d492f647d5ba5ce16fc", "configKey": "oracle" },
+    "VerdictBurnVault": { "abiHash": "518674ab2b227e5f11e9084f615d57663cde47bce1ba168b4c19c7ee22a73d70", "configKey": "burnVault" }
+  }
+}

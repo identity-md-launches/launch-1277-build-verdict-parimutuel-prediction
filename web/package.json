@@ -1,0 +1,35 @@
+{
+  "name": "verdict-site",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "node scripts/browser-check.mjs",
+    "test:wallet": "node scripts/wallet-check.mjs",
+    "verify:contracts": "node scripts/verify-contracts.mjs",
+    "build:social": "node scripts/browser-check.mjs --social"
+  },
+  "dependencies": {
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "viem": "2.37.9"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
+    "@types/node": "24.5.2",
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.9",
+    "playwright": "1.56.1",
+    "typescript": "5.9.2",
+    "vite": "7.1.7",
+    "vitest": "3.2.4"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

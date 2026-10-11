@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-11T07:04:57.796Z",
+  "chainId": 11155111,
+  "sourceCommit": "3d603d480c490b93edb99cef51cac86692692541",
+  "results": [
+    {
+      "contract": "VerdictMarkets",
+      "abiHash": "c943db34490c40d331a4d953b914ea42b36cfd6b7f441db573a71bff64910bc0",
+      "runtimeCodeHash": "0xbdca7d383d8ca5076c7f0fb498fdf911b4dc4f4600db0ce3fe6b8965cb4f5a79",
+      "compiledRuntimeMatches": true
+    },
+    {
+      "contract": "VerdictOracle",
+      "abiHash": "93003e764f176f31ae68d07892a13661d043c5cce6cf9d492f647d5ba5ce16fc",
+      "runtimeCodeHash": "0xf4281aeb0470b395873c171511d96cc99b92a7e2101a539a71e4a2e3f32dfbd8",
+      "compiledRuntimeMatches": true
+    },
+    {
+      "contract": "VerdictBurnVault",
+      "abiHash": "518674ab2b227e5f11e9084f615d57663cde47bce1ba168b4c19c7ee22a73d70",
+      "runtimeCodeHash": "0x19735bdf4d52c6f889cfd85f70fad899c9f4372c41ff8aa853bf043831e21b36",
+      "compiledRuntimeMatches": true
+    }
+  ]
+}
