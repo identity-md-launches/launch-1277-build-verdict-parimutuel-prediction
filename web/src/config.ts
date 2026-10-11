@@ -70,5 +70,6 @@ export const LINKS = {
     "https://github.com/identity-md-launches/launch-1277-build-verdict-parimutuel-prediction",
   imd: "https://imd.fun",
   jobs: "https://explorer.imd.fun/jobs/",
+  oracleExplorer: "https://explorer.imd.fun/oracle",
   social: "https://x.com/VerdictIMD",
 };

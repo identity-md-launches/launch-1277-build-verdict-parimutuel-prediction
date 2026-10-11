@@ -102,8 +102,8 @@ async function measureTheme(theme) {
         size: style("h1").fontSize,
       },
       label: {
-        family: style(".hero-proof").fontFamily,
-        size: style(".hero-proof").fontSize,
+        family: style(".stat > span:first-child").fontFamily,
+        size: style(".stat > span:first-child").fontSize,
       },
       fonts: [...document.fonts].map((f) => ({
         family: f.family,
@@ -328,6 +328,12 @@ try {
         check(
           "390px first screen shows product and primary action",
           heading.y + heading.height < 844 && action.y + action.height < 844,
+        );
+        const marketQuestion = await page.locator(".market-card h3").first().boundingBox(),
+          marketAction = await page.getByRole("link", { name: "View market", exact: false }).first().boundingBox();
+        check(
+          "390px first screen shows a complete actual market question and View market action",
+          marketQuestion.y + marketQuestion.height <= 844 && marketAction.y + marketAction.height <= 844,
         );
         await screenshot("home-mobile");
         await page.getByRole("button", { name: "Open navigation" }).click();

@@ -3,6 +3,7 @@ import {
   DataBoundary,
   Empty,
   PageIntro,
+  Time,
   TransactionNotice,
 } from "./components";
 import { clientFor, readMarket } from "./chain";
@@ -45,18 +46,27 @@ function defaults(chainId: number): CreateInput {
   };
 }
 export function CreatePage() {
+  const { config } = useData(),
+    wallet = useWallet();
+  return <CreatorAccess key={`${config.chainId}:${wallet.account || ""}`} />;
+}
+function CreatorAccess() {
   const { config, data } = useData(),
     wallet = useWallet();
   const [allowed, setAllowed] = useState<boolean>(),
+    [checking, setChecking] = useState(true),
     [accessError, setAccessError] = useState(""),
     [revision, setRevision] = useState(0);
   useEffect(() => {
     let live = true;
-    setAllowed(undefined);
+    // Keep this wallet's draft mounted during routine access rechecks.
+    setChecking(true);
     setAccessError("");
     if (wallet.account && data) {
-      if (!data.allowlistOn) setAllowed(true);
-      else
+      if (!data.allowlistOn) {
+        setAllowed(true);
+        setChecking(false);
+      } else
         void readMarket<boolean>(
           config,
           "allowedCreators",
@@ -68,12 +78,15 @@ export function CreatePage() {
           })
           .catch((e) => {
             if (live) setAccessError(errorMessage(e));
+          })
+          .finally(() => {
+            if (live) setChecking(false);
           });
     }
     return () => {
       live = false;
     };
-  }, [wallet.account, data?.block, config.chainId, revision]);
+  }, [wallet.account, data, config.chainId, revision]);
   return (
     <>
       <PageIntro title="Put a question on chain.">
@@ -93,7 +106,7 @@ export function CreatePage() {
         </Empty>
       ) : (
         <DataBoundary>
-          {accessError ? (
+          {accessError && (
             <Empty
               title="Could not check creator access"
               action={
@@ -104,7 +117,8 @@ export function CreatePage() {
             >
               {accessError}
             </Empty>
-          ) : allowed === undefined ? (
+          )}
+          {allowed === undefined ? accessError ? null : (
             <p className="loading-state" role="status">
               Checking the on-chain creator allowlist…
             </p>
@@ -121,14 +135,14 @@ export function CreatePage() {
               enabled. You can still bet on open markets and advance settlement.
             </Empty>
           ) : (
-            <CreatorForm key={config.chainId} />
+            <CreatorForm canCreate={!checking && !accessError} />
           )}
         </DataBoundary>
       )}
     </>
   );
 }
-function CreatorForm() {
+function CreatorForm({ canCreate }: { canCreate: boolean }) {
   const { config, data, now, error: readError } = useData();
   const wallet = useWallet();
   const [input, setInput] = useState<CreateInput>(() =>
@@ -252,7 +266,7 @@ function CreatorForm() {
     }
   }
   async function create() {
-    if (!review) return;
+    if (!review || !canCreate) return;
     try {
       const fresh = buildMarket(input, config, data!.price, now);
       await wallet.send("createMarket", fresh.args, fresh.params.bounty);
@@ -415,8 +429,7 @@ function CreatorForm() {
           <h2>3. Settlement schedule</h2>
           <p className="small muted">
             Dates and times are in your timezone:{" "}
-            {Intl.DateTimeFormat().resolvedOptions().timeZone}. Review shows
-            UTC.
+            {Intl.DateTimeFormat().resolvedOptions().timeZone}.
           </p>
           <div className="form-grid">
             {field("closeAt", "Betting closes", "datetime-local")}
@@ -465,7 +478,7 @@ function CreatorForm() {
           <button
             className="primary"
             type="submit"
-            disabled={wallet.pending || data?.paused || !!readError}
+            disabled={!canCreate || wallet.pending || data?.paused || !!readError}
           >
             Review market <span aria-hidden="true">→</span>
           </button>
@@ -500,15 +513,17 @@ function CreatorForm() {
           >
             <h2>Review your market</h2>
             <h3>{review.body.question}</h3>
-            <p>{outcomeLabels(review.params).join(" · ")}</p>
+            <p className="mono outcome-label">
+              {outcomeLabels(review.params).join(" · ")}
+            </p>
             <dl className="raw-data">
               <dt>Question hash</dt>
               <dd>
                 <code>{review.questionHash}</code>
               </dd>
-              <dt>Betting closes · UTC</dt>
+              <dt>Betting closes</dt>
               <dd>
-                {new Date(Number(review.params.closeAt) * 1000).toUTCString()}
+                <Time value={review.params.closeAt} />
               </dd>
               <dt>Panel / escalation panel</dt>
               <dd>
@@ -545,7 +560,7 @@ function CreatorForm() {
             <button
               className="primary"
               onClick={() => void create()}
-              disabled={wallet.pending || !!readError || data?.paused}
+              disabled={!canCreate || wallet.pending || !!readError || data?.paused}
             >
               {wallet.pending
                 ? "Waiting for wallet…"

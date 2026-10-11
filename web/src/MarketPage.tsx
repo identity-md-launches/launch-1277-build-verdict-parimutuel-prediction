@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { parseUnits, type Hex } from "viem";
 import {
   ActionButton,
@@ -68,6 +68,7 @@ function MarketDetails({ view }: { view: MarketView }) {
     [answerLoading, setAnswerLoading] = useState(false),
     [selected, setSelected] = useState("");
   const [times, setTimes] = useState<Record<string, bigint>>({});
+  const verifiedAnswers = useRef(new Map<string, AnswerRecord>());
   const m = view.market,
     status = marketStatus(m, view.events, view.answers, now),
     labels = outcomeLabels(m.params);
@@ -78,11 +79,16 @@ function MarketDetails({ view }: { view: MarketView }) {
     let live = true;
     setAnswerLoading(true);
     void mapLimit([...view.answers].reverse(), 2, async (event) => {
+      const key = `${config.chainId}:${event.transactionHash}:${event.logIndex}:${event.args.attHash}`;
+      const verified = verifiedAnswers.current.get(key);
+      if (verified) return { ...verified, event };
       try {
-        return {
+        const record = {
           event,
           attestation: await loadAttestation(config, view, event),
         };
+        if (live) verifiedAnswers.current.set(key, record);
+        return record;
       } catch (e) {
         return { event, error: errorMessage(e) };
       }
@@ -109,7 +115,8 @@ function MarketDetails({ view }: { view: MarketView }) {
     return () => {
       live = false;
     };
-  }, [eventKey, config.chainId]);
+    // A new successful snapshot retries failed reads, including unchanged events.
+  }, [eventKey, config.chainId, data]);
   const chosen = answers.find((r) => r.event.transactionHash === selected),
     a = chosen?.attestation;
   const proposed = [...view.events]
@@ -366,11 +373,12 @@ function MarketDetails({ view }: { view: MarketView }) {
                 {chosen?.error && (
                   <div className="notice error">
                     <p>Could not verify this attestation: {chosen.error}</p>
-                    <External
-                      href={`${LINKS.jobs}${panelUUID(chosen.event.args.requestId)}`}
-                    >
-                      Open request in IMD explorer
+                    <External href={LINKS.oracleExplorer}>
+                      Open oracle explorer
                     </External>
+                    <p className="mono outcome-label">
+                      Request {panelUUID(chosen.event.args.requestId)}
+                    </p>
                   </div>
                 )}
                 {a && (

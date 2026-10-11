@@ -1,0 +1,79 @@
+{
+  "home": {
+    "hero": {
+      "top": 113,
+      "bottom": 514.171875,
+      "height": 401.171875
+    },
+    "stats": {
+      "top": 514.171875,
+      "bottom": 830.171875,
+      "height": 316
+    },
+    "card": {
+      "top": 1376.734375,
+      "bottom": 1837.296875,
+      "height": 460.5625
+    },
+    "action": {
+      "top": 1772.296875,
+      "bottom": 1812.296875,
+      "height": 40
+    },
+    "empty": "The next question is still open.",
+    "fonts": [
+      {
+        "family": "Archivo, Arial, sans-serif",
+        "weight": "800"
+      },
+      {
+        "family": "Archivo, Arial, sans-serif",
+        "weight": "800"
+      },
+      {
+        "family": "Archivo, Arial, sans-serif",
+        "weight": "800"
+      },
+      {
+        "family": "Archivo, Arial, sans-serif",
+        "weight": "800"
+      },
+      {
+        "family": "Archivo, Arial, sans-serif",
+        "weight": "800"
+      }
+    ]
+  },
+  "list390": {
+    "document": 627,
+    "viewport": 390,
+    "paragraph": 586,
+    "content": 308
+  },
+  "list360": {
+    "document": 623,
+    "viewport": 360,
+    "paragraph": 586,
+    "content": 286
+  },
+  "list1440": {
+    "document": 1575,
+    "viewport": 1440,
+    "paragraph": 586,
+    "content": 302
+  },
+  "reviewTime": "Question hash\n0xa932dcd21e6ae24d47338b9df6591fa04784032d12653b071e1da19a7e43f9e5\nBetting closes · UTC\nTue, 01 Jan 2030 04:00:00 GMT\nPanel / escalation panel\n5 / 10\nBounty\n1 test IMD",
+  "draftAfterRefresh": {
+    "question": "",
+    "from": "",
+    "to": "",
+    "review": 0
+  },
+  "fallback": "https://explorer.imd.fun/jobs/0b26a0ed-870e-4c24-bc6d-db4447fb74a8",
+  "recovery": {
+    "lookups": 0,
+    "verified": false,
+    "error": true
+  },
+  "browserErrors": []
+}

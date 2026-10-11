@@ -1,7 +1,7 @@
 {
-  "checkedAt": "2026-10-11T07:31:20.536Z",
+  "checkedAt": "2026-10-11T08:09:59.924Z",
   "url": "/preview/",
-  "browser": "154.0.8037.0",
+  "browser": "141.0.7390.37",
   "results": [
     "Production title is exactly Verdict",
     "RPC snapshot loaded",
@@ -21,6 +21,7 @@
     "Create page explains on-chain allowlisting",
     "Home reflows without document overflow at 390px",
     "390px first screen shows product and primary action",
+    "390px first screen shows a complete actual market question and View market action",
     "Home reflows without document overflow at 360px",
     "Home reflows without document overflow at 320px",
     "Home reflows without document overflow at 820px",
@@ -161,7 +162,7 @@
         "family": "Archivo, Arial, sans-serif",
         "weight": "800",
         "stretch": "125%",
-        "size": "40px"
+        "size": "28px"
       },
       "label": {
         "family": "\"IBM Plex Mono\", monospace",

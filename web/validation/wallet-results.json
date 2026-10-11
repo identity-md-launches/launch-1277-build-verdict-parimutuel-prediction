@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-11T07:31:28.829Z",
+  "checkedAt": "2026-10-11T08:10:36.466Z",
   "scope": "Deterministic mocked RPC and EIP-6963 wallet; no live transactions broadcast",
   "results": [
     "RPC fallback recovers after the primary endpoint fails",
@@ -72,5 +72,5 @@
   ],
   "errors": [],
   "transactionCount": 10,
-  "requests": 455
+  "requests": 439
 }

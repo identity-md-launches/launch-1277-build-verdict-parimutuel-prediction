@@ -27,17 +27,16 @@ export const attestationParam = oracle.find(
   (x) => x.type === "function" && x.name === "answerOf",
 )!.inputs![0] as AbiParameter;
 export function canonical(value: unknown): string {
-  const sort = (v: any): any =>
-    Array.isArray(v)
-      ? v.map(sort)
-      : v && typeof v === "object"
-        ? Object.fromEntries(
-            Object.keys(v)
-              .sort()
-              .map((k) => [k, sort(v[k])]),
-          )
-        : v;
-  return JSON.stringify(sort(value));
+  // Serialize entries directly: JSON.stringify reorders integer-like object keys.
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && typeof value === "object") {
+    const object = value as Record<string, unknown>;
+    return `{${Object.keys(object)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonical(object[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 export function questionHash(
   body: Pick<Body, "question" | "chainId" | "window" | "answerType"> &

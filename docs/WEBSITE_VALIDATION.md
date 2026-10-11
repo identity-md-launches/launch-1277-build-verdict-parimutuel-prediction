@@ -10,18 +10,19 @@ The final source is in `web/`; the publisher-ready export is `dist/`. All assets
 
 ## Actual checks
 
-Validation was run on 2026-10-11 with Node 24.9.0, Vite 7.1.7, TypeScript 5.9.2, Vitest 3.2.4, Playwright 1.56.1 and Chromium Headless Shell 154.0.8037.0. The supplied MCP browser connector could not find its configured executable. The installed headless Chromium was used directly with Playwright and a bounded foreground preview server. A full Chromium launch also failed in this environment; its crash dump was removed. No system configuration was changed.
+Revision validation ran on 2026-10-11 with Node 24.21.0, Vite 7.1.7, TypeScript 5.9.2, Vitest 3.2.4, Playwright 1.56.1 and Chromium 141.0.7390.37. Both the supplied MCP browser and the repository’s Playwright harness worked in this run. The harness serves the actual production export at `/preview/` and closes its server/browser on completion. MCP screenshots of the live export were inspected at 390×844 and 1440×900. Dependencies and browser binaries were installed under `/tmp`; no system configuration was changed.
 
 | Command / check | Actual result |
 | --- | --- |
-| `node web/scripts/isolated.mjs install` | Passed. Exact lockfile installed outside the repository; 130 packages. |
+| `node web/scripts/isolated.mjs install` | Passed. Exact lockfile installed outside the repository; 80 packages. Manifests and lockfiles unchanged. |
 | `node web/scripts/isolated.mjs build` | Passed after the final source changes. 430 modules; relative asset URLs; no final build warnings. |
 | `node web/scripts/isolated.mjs typecheck` | Passed (`tsc --noEmit`). |
-| `node web/scripts/isolated.mjs test` | Passed: 13 domain tests. |
-| `CHROMIUM_EXECUTABLE=/opt/ms-playwright/chromium_headless_shell-1246/chrome-headless-shell-linux64/chrome-headless-shell node web/scripts/isolated.mjs test:browser` | Passed: 27 live production-browser checks; 12 reviewed contrast pairs passed; no uncaught page errors or failed requests. |
-| Same browser environment, `node web/scripts/isolated.mjs test:wallet` | Passed: 37 deterministic wallet/RPC/browser checks, including all six permissionless controls. Ten simulated wallet sends; no broadcasts. |
-| Seven axe scans within `test:wallet` | Zero violations for the tested WCAG A/AA rule tags in the seven recorded states. This is not a claim of complete accessibility conformance. |
-| `VERDICT_NODE_MODULES=/tmp/verdict-tools/node_modules node web/scripts/verify-contracts.mjs` | Passed for all three contracts: compiled ABI canonical hashes equal the manifest, full runtime hashes equal configuration, and compiled runtime matches after masking compiler-recorded immutable slots. |
+| `node web/scripts/isolated.mjs test` | Passed: 14 domain tests, including the numeric-definition-key regression. |
+| `node web/scripts/isolated.mjs test:browser` | Passed: 28 live production-browser checks; 12 reviewed contrast pairs passed; no uncaught page errors or failed requests. |
+| `node web/scripts/isolated.mjs test:wallet` | Passed: 37 deterministic wallet/RPC/browser checks, including all six permissionless controls. Ten simulated wallet sends; no broadcasts. |
+| `node web/scripts/isolated.mjs test:wallet --revision` | Passed: 37 additional checks covering all reported UI failures and related recovery paths; no broadcasts. |
+| Nine axe scans across the two wallet suites | Zero violations for the tested WCAG A/AA rule tags in the nine recorded states. This is not a claim of complete accessibility conformance. |
+| `VERDICT_NODE_MODULES=/tmp/verdict-tools/node_modules node web/scripts/verify-contracts.mjs` (previous round, not rerun) | Previously passed for all three contracts; unchanged source/ABI/configured runtime hashes retained: compiled ABI canonical hashes equal the manifest, full runtime hashes equal configuration, and compiled runtime matches after masking compiler-recorded immutable slots. |
 | `git diff --check` | Passed. |
 | `node web/scripts/check-export.mjs` / export-path inspection | Relative scripts/styles/fonts/favicon, title and social metadata present; required assets retained; no dependency/cache directories or archives in the deliverable; existing build configuration, contract sources and dependencies unchanged. |
 
@@ -33,11 +34,15 @@ Final machine-readable reports are retained in:
 - [`web/validation/wallet-results.json`](../web/validation/wallet-results.json)
 - [`web/validation/contract-verification.json`](../web/validation/contract-verification.json)
 - [`web/validation/export-integrity.json`](../web/validation/export-integrity.json)
+- [`web/validation/revision-before.json`](../web/validation/revision-before.json) — measurements of the untouched export
+- [`web/validation/revision-results.json`](../web/validation/revision-results.json) — regression assertions and final geometry/fonts/times
+- [`.imd-responses.json`](../.imd-responses.json) — all nine reviewer responses
 
 ## Required data regressions
 
 `web/tests/domain.test.ts` uses captured, public Sepolia records in `chain-fixture.json`; fixtures are excluded from the production bundle.
 
+- Integer-like definition keys serialize lexicographically (`"10"` before `"2"`), including nested objects inside arrays; array order is preserved. The supplied numeric-key question hash is `0x0a41f72a223cc698a45e850e2ff389ae113890033df5b0fef53320ee31a7f53b`. This new test failed before the canonicalizer fix.
 - Market 1’s exact question hashes to `0x50477e7b428ae78e43a979cc48ce0a7524746a0579d03570944489ff3ee3e800` under recursive sorted-key, compact JSON canonicalization.
 - Transaction `0x56f6682a2dafbed218caa9d9cb798795e6257b557ba8309e6850c9134f5420f5` decodes as `complete`; its callback arguments recover an attestation whose `keccak256(abi.encode(attestation))` equals the matched `Answered.attHash`. Its bool answer is Yes, and request/body identities are verified. Corrupted hash, request and body cases are rejected.
 - Bool labels, full 18-decimal bucket bounds, address-list keys, bytes32-list keys and “None of these” are covered. Bytes32 text is generated and decoded by viem, not handwritten.
@@ -71,14 +76,34 @@ The pinned workflow and core principles of all six domains were read and applied
 
 | Domain | Coverage | Evidence and boundaries |
 | --- | --- | --- |
-| Accessibility | Checked | Native controls, labels, heading structure, status text, focus rules, skip link, modal Escape/focus return, table headers, focusable JSON scroll regions, reduced-motion opt-in, and seven automated scans. No human screen-reader session, physical touch-device session or native 200% zoom. |
-| Layout | Checked | Shared 1280px edges, wrapping questions/hashes, above-fold action, desktop and narrow screenshots, measured document overflow at the listed widths, wrapped toolbars and scrollable table. No RTL or translated-layout test; the product is English only. |
+| Accessibility | Checked | Native controls, labels, heading structure, status text, focus rules, skip link, modal Escape/focus return, table headers, focusable JSON scroll regions, reduced-motion opt-in, and nine automated scans. Creator review keyboard submission/focus also checked. No human screen-reader session, physical touch-device session or native 200% zoom. |
+| Layout | Checked | Shared 1280px edges, wrapping questions/hashes, above-fold real market question/pools/View market action, desktop and narrow screenshots, measured document overflow at the listed widths, wrapped toolbars and scrollable table. No RTL or translated-layout test; the product is English only. |
 | Writing | Checked | Action labels match contract calls; exact testnet warning; honest RPC/empty states; approval and confirmation text; immutable-market warning; fee/guardian/oracle risks. Refund is explained as enabling deposit claims; Claim transfers the wallet’s amount. |
-| Typography | Checked | Archivo 800 / 125% and both Plex Mono faces confirmed loaded; six-size scale; 16px fields; tabular numbers; full-address wrapping; local times and UTC hover. Other OS font-rendering engines were not tested. |
+| Typography | Checked | Archivo 800 / 125% and both Plex Mono faces confirmed loaded; six-size scale; 16px fields; tabular numbers; full-address and bytes32 review wrapping; Mono 500 dashboard/portfolio/fee figures; local review time in Asia/Taipei and UTC hover. Other OS font-rendering engines were not tested. |
 | Colors | Checked | Both themes; computed opaque foreground/background pairs measured; 12 text/control pairs pass their applicable 4.5:1 or 3:1 threshold. Status text supplements color. Decorative diagram lines and quiet structural separators are not used as text or essential controls. |
-| UI | Checked | Normal, selected, disabled, pending, rejected, confirmed, disconnected, empty and disclosure states reviewed through source and exercised flows. Local assets, all primary interactions and screenshots checked. Motion source is reduced-motion-aware; animation-panel slow playback was not performed. |
+| UI | Checked | Normal, selected, disabled, pending, rejected, confirmed, disconnected, empty and disclosure states reviewed through source and exercised flows. Local assets, all primary interactions and screenshots checked. Forced RPC recovery and same-wallet draft preservation pass, including scheduled refresh with an advanced browser clock. Motion source is reduced-motion-aware; animation-panel slow playback was not performed. |
 
-### Findings and fixes
+### Revision findings and fixes
+
+All nine reports reproduced before implementation; `.imd-responses.json` records the complete IDs and individual outcomes. Initial geometry came from the untouched static export; intercepted RPC fixtures reproduced transient failures without any signing or broadcasting. The new numeric-key unit test first failed against the original canonicalizer. Changes are confined to the affected site components/helpers, their tests, export and documentation.
+
+| Severity / domain | Final source location | Reproduction, fix and recheck |
+| --- | --- | --- |
+| High / Layout | `web/src/App.tsx:308`, `web/src/styles.css:1927` | Live 390×844 first card began at y=1376.73; only hero/stats were initially visible. Removed hero-proof copy, compacted mobile hero, and moved open/recent markets ahead of statistics. Full question now occupies y=468.50–622.06 and View market y=790.06–830.06. Live and fixture suites assert the actual card/action, not only the directory link. |
+| High / Layout / Typography | `web/src/CreatePage.tsx:516` | List review widened document to 627/623/1575px at 390/360/1440. Reused `.mono.outcome-label` wrapping; final document widths equal each viewport and both complete keys remain readable. |
+| Medium / Data | `web/src/domain.ts:29` | Numeric definition keys were reordered by JSON.stringify. Direct recursive lexicographic serialization fixes them; numeric-key and original market vectors pass. |
+| Medium / Writing / UI | `web/src/MarketPage.tsx:376`, `web/src/config.ts:73` | Failure link constructed a job ID from an oracle request and returned HTTP 404. It now opens `/oracle` (HTTP 200) and displays the request UUID. All successful job links still derive from recovered panelJobId; the example panel URL returned HTTP 200. |
+| Medium / UI | `web/src/MarketPage.tsx:71` | Refresh after transaction-lookup recovery made zero new reads. Successful snapshots now retry failures and retain verified records. No-new-block/event refresh makes one transaction read, restores Hash verified and enables Submit answer on an Answered fixture. Later refresh during an outage preserves verified evidence without another lookup. |
+| Medium / UI / Accessibility | `web/src/CreatePage.tsx:48` | New-block refresh erased every draft field and review. Account/deployment-scoped access checks retain the mounted form. Manual and automatic refresh (browser clock advanced 31 seconds) preserve all fields/review; access error/retry also preserves them while disabling creation. Revocation removes the form; disconnect/reconnect resets it. |
+| Low / Typography | `web/src/styles.css:649`, `:1471`, `:1492` | Dashboard totals used Archivo 800. Homepage, portfolio and fee numbers now compute to IBM Plex Mono 500, normal stretch and tracking. Heading/wordmark styling retained. |
+| Medium / Typography / Writing | `web/src/CreatePage.tsx:525` | Taipei 12:00 input became UTC-only 04:00 review. Shared Time now renders Jan 1, 2030, 12:00 PM with UTC title and exact ISO datetime; misleading helper removed. |
+| Low / Writing | `web/src/App.tsx:327` | Zero-open-market headline claimed a question was open. Plain “No markets are open for betting” copy and settled-market action now match the count; recent records appear above the guidance. Open-market fixture suppresses the empty state. |
+
+The first layout correction still placed the action below the fold because the section subtitle wrapped its directory link onto another row. Removed that redundant subtitle and rechecked: the final action fits at y=830 without changing or truncating the MarketCard content. No additional redesign was made. Regression harness selectors/clock probes were repaired against the actual rendered labels and RPC method; the reported final results are from completed runs.
+
+### Initial implementation findings (retained history)
+
+The following entries describe the previously accepted round; their line numbers refer to that round’s source. The revision above supersedes its overly broad first-screen claim and its uncovered creator/attestation edge cases.
 
 | Severity / domain | Final source location | Finding, correction and recheck |
 | --- | --- | --- |
@@ -95,7 +120,7 @@ The pinned workflow and core principles of all six domains were read and applied
 
 ### Rendered evidence
 
-Task attachments under `artifacts/` include `home-desktop.png`, `home-mobile.png`, `home-mobile-light.png`, `markets-desktop.png`, `market-desktop.png`, `market-mobile.png`, `risks-desktop.png`, `focus-desktop.png`, `bet-mobile.png`, `create-desktop.png` and `create-mobile.png`. The last three use explicitly simulated wallet/market states. The artifact directory is excluded by the supplied Git configuration and collected separately; no ignore files were changed. Durable textual/JSON results are included in Git under `docs/` and `web/validation/`.
+Task attachments under `artifacts/` include `home-desktop.png`, `home-mobile.png`, `home-mobile-light.png`, `markets-desktop.png`, `market-desktop.png`, `market-mobile.png`, `risks-desktop.png`, `focus-desktop.png`, `bet-mobile.png`, `create-desktop.png` and `create-mobile.png`. The last three use explicitly simulated wallet/market states. Revision captures include `revision-before-home.png`, `revision-before-review.png`, `revision-home-mobile.png`, `revision-home-desktop.png`, `revision-list-review-mobile.png`, `revision-attestation-error.png` and `revision-home-open-mobile.png`; the revision wallet captures use intercepted fixtures. The live `home-mobile.png`, `home-mobile-light.png`, `home-desktop.png` and MCP captures `revision-live-home-mobile.png` / `revision-live-home-desktop.png` were also inspected. The artifact directory is excluded by the supplied Git configuration and collected separately; no ignore files were changed. Durable textual/JSON results are included in Git under `docs/` and `web/validation/`.
 
 ## Limitations and completion
 
@@ -103,4 +128,4 @@ The site and requested checks are complete. Live writes were not broadcast; a re
 
 Public RPCs can be unavailable, throttle requests or reorganize recent chain history. The application has fallback/retry messaging and a 24-block overlap, but it is not a persistent indexer or an independent proof of RPC honesty. Wallet transactions can still revert if chain state changes after simulation. The live tests use the known Sepolia example markets and captured immutable transaction evidence; later chain activity can change directory counts and totals.
 
-All implementation changes are confined to the website, export and documentation. Existing Solidity source, build configuration, dependencies and ignore files were preserved. The production export has no test fixtures, private configuration, node_modules, caches, backend code or dependency archives. `export-integrity.json` records final bytes and asset hashes. The export is 685,145 bytes. The conservative bundle bound sums the raw prospective tree, all existing compressed Git objects and a 200,000-byte reserve; it remains below 4.8 MB against the 8,388,608-byte limit. The publisher’s actual Git bundle was not created here.
+All implementation changes are confined to the website, export and documentation. Existing Solidity source, build configuration, dependencies and ignore files were preserved. The production export has no test fixtures, private configuration, node_modules, caches, backend code or dependency archives. `export-integrity.json` records final bytes and asset hashes. The export is 684,853 bytes. The conservative bundle bound sums the raw prospective tree, all existing compressed Git objects and a 200,000-byte reserve; it remains below 5.2 MB against the 8,388,608-byte limit. The publisher’s actual Git bundle was not created here.

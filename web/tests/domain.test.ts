@@ -220,6 +220,17 @@ describe("Outcome and lifecycle rules", () => {
   });
 });
 describe("Creator documents", () => {
+  it("serializes integer-like keys lexicographically, including nested definitions", () => {
+    expect(canonical({ definitions: { "2": "two", "10": "ten" } })).toBe(
+      '{"definitions":{"10":"ten","2":"two"}}',
+    );
+    expect(canonical({ z: [{ "2": null, "10": [2, 1] }], a: true })).toBe(
+      '{"a":true,"z":[{"10":[2,1],"2":null}]}',
+    );
+    expect(questionHash({ ...body, definitions: { "2": "two", "10": "ten" } })).toBe(
+      "0x0a41f72a223cc698a45e850e2ff389ae113890033df5b0fef53320ee31a7f53b",
+    );
+  });
   it("sorts nested keys, omits chain evidence from question hash, includes definitions", () => {
     expect(canonical({ z: 1, a: { z: 2, a: 3 } })).toBe(
       '{"a":{"a":3,"z":2},"z":1}',

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Verdict is a public interface for people and agents using on-chain prediction markets. The implementation uses an ink canvas, expanded headings, precise mono labels, quiet structural borders and a green primary action. The home page introduces the product and immediately offers **Explore markets**. Market pages prioritize the question, outcome pools, betting and verifiable settlement evidence. All displayed market records come from the contracts; unavailable or empty data receives an explicit state.
+Verdict is a public interface for people and agents using on-chain prediction markets. The implementation uses an ink canvas, expanded headings, precise mono labels, quiet structural borders and a green primary action. The home page introduces the product, offers **Explore markets**, and shows open markets (or recent markets when none are open) before protocol statistics. Market pages prioritize the question, outcome pools, betting and verifiable settlement evidence. All displayed market records come from the contracts; unavailable or empty data receives an explicit state.
 
 Source of truth: [`web/src/styles.css`](web/src/styles.css), shared components in [`web/src/components.tsx`](web/src/components.tsx), and page composition in [`web/src/App.tsx`](web/src/App.tsx). Dark is the default. A local-storage preference selects light mode; no analytics or remote theme service is used.
 
@@ -32,11 +32,11 @@ Measured rendered text contrast: body 16.802:1 in both themes; muted copy on a p
 
 All three webfont faces are self-hosted in `web/public/fonts/` and copied to `dist/fonts/`, with their OFL licenses. The rendered browser check confirmed they loaded.
 
-- **Archivo 800, 125% width** (`archivo-expanded-800.woff2`): headings, wordmark, large statistics. CSS uses `font-weight: 800` and `font-stretch: 125%`; the font was obtained at those axes. Fallback: Arial, sans-serif.
-- **IBM Plex Mono 400 / 500**: labels, controls, amounts, times, statuses, code and tables. Fallback: monospace. Numeric data uses `font-variant-numeric: tabular-nums`.
+- **Archivo 800, 125% width** (`archivo-expanded-800.woff2`): headings and wordmark. CSS uses `font-weight: 800` and `font-stretch: 125%`; the font was obtained at those axes. Fallback: Arial, sans-serif.
+- **IBM Plex Mono 400 / 500**: labels, controls, amounts, times, statuses, code and tables. Homepage totals, portfolio amounts and fee percentages use weight 500 with normal stretch and tracking. Fallback: monospace. Numeric data uses `font-variant-numeric: tabular-nums`.
 - **Arial / Helvetica / sans-serif**: explanatory paragraphs and long risk text.
 
-The six-size scale in CSS is 13, 16, 20, 28, 40 and 64px (`--s-caption`, `--s-body`, `--s-subhead`, `--s-heading`, `--s-title`, `--s-display`). The desktop home heading is 64px; it becomes 40px below 1100px and 28px below 370px. Ordinary page headings use 40px, then 28px on mobile. Long market questions use 28px desktop / 20px mobile. Panel headings use 20px; captions and dense labels use 13px. All editable fields use 16px.
+The six-size scale in CSS is 13, 16, 20, 28, 40 and 64px (`--s-caption`, `--s-body`, `--s-subhead`, `--s-heading`, `--s-title`, `--s-display`). The desktop home heading is 64px; it becomes 40px at 1100px and 28px at 680px. Ordinary page headings use 40px, then 28px on mobile. Long market questions use 28px desktop / 20px mobile. Panel headings use 20px; captions and dense labels use 13px. All editable fields use 16px.
 
 Body line height is 1.6, multi-line card questions 1.45–1.6, and market headings 1.4–1.5. The short hero is 1.08–1.12. Headings use balanced wrapping; full questions use pretty wrapping and `overflow-wrap:anywhere` so on-chain addresses remain available. Long-form content is capped at 72ch. Exact token amounts are available via native hover titles; times show the viewer’s local timezone with UTC on hover. Raw oracle figures retain their original units.
 
@@ -47,10 +47,10 @@ The common `.container` and header cap at 1280px, including 40px inline padding.
 - Above 1100px: two-column home hero, five-column statistics, two-column market cards, and a 340px market sidebar.
 - At 1100px: container padding becomes 28px and the market sidebar becomes 300px.
 - At 900px: navigation becomes a disclosed menu, stats use three columns, the market sidebar becomes a pair of panels above the main details, and the creator form becomes one column.
-- At 680px: 20px page margins, single-column cards, two-column stats with a full-width burn row, a stacked five-step explanation, and a compact hero without its decorative diagram. The betting panel appears before market details; permissionless settlement controls follow the details. The theme action remains available inside mobile navigation.
-- At 370px: margins become 16px and the hero type reduces to 28px.
+- At 680px: 20px page margins, single-column cards, two-column stats with a full-width burn row, a stacked five-step explanation, and a compact hero without its decorative diagram. Hero padding is 24px above / 16px below, with 12px paragraph margins. The first market section has no added top margin; its heading and directory link share a row when space permits. The betting panel appears before market details; permissionless settlement controls follow the details. The theme action remains available inside mobile navigation.
+- At 370px: margins become 16px and hero actions use narrower spacing; the heading remains 28px.
 
-The first screen at 390×844 contains the brand, explicit testnet banner, product explanation and Explore markets action. Browser checks covered home reflow at 320, 360, 390, 820 and 1440px; market, creator and risk flows were also inspected at 390px. Tables use a labeled, keyboard-focusable horizontal scroll region. JSON disclosures preserve all content, wrap long values, and provide keyboard focus for scrolling. Native 200% browser zoom and physical devices were not tested.
+The first screen at 390×844 contains the brand, explicit testnet banner, product explanation, Explore markets action, and the first recent market’s complete question, pools and View market action (ending at y=830 in the tested Sepolia state). Browser checks covered home reflow at 320, 360, 390, 820 and 1440px; market, creator and risk flows were also inspected at 390px. List-market review keys use the existing `.mono.outcome-label` styles to wrap every character; no document overflow occurred at 360, 390 or 1440px. Tables use a labeled, keyboard-focusable horizontal scroll region. JSON disclosures preserve all content, wrap long values, and provide keyboard focus for scrolling. Native 200% browser zoom and physical devices were not tested.
 
 ## Elevation & depth
 
@@ -72,8 +72,8 @@ Buttons use 5px radii; inputs, badges and disclosures use 4px; section container
 | `ActionButton` | `components.tsx` | Simulates for the wallet before enabling; explains rejection; simulates again before sending; refreshes eligibility every 15 seconds |
 | `WalletButton` / wallet dialog | `wallet.tsx` | EIP-6963 choices; native modal keyboard handling, Escape close and focus return; no wallet secrets stored |
 | `BetPanel` | `MarketPage.tsx` | Radio outcomes, exact decimal amount, presets, balance, cap checks, estimate and approval/bet progress |
-| Timeline / evidence disclosures | `MarketPage.tsx` | Transaction links, local time/UTC hover, authenticated evidence, raw JSON and hashes; missing evidence has a visible explanation |
-| Creator form / review | `CreatePage.tsx` | On-chain access gate, labeled fields, focused validation errors, schedule warning, immutable JSON/hash preview and bounty approval |
+| Timeline / evidence disclosures | `MarketPage.tsx` | Transaction links, local time/UTC hover, authenticated evidence, raw JSON and hashes; failures show the oracle explorer directory and request UUID. Refresh retries failures and retains verified answers; job links use only recovered panel IDs |
+| Creator form / review | `CreatePage.tsx` | On-chain access gate, labeled fields, focused validation errors, schedule warning, wrapping outcome keys, local review time with UTC hover, immutable JSON/hash preview and bounty approval. Routine access checks preserve the draft; account/deployment changes or actual revocation reset it. An access-read error keeps the draft visible and disables creation until retry succeeds |
 | Portfolio position / activity | `Portfolio.tsx` | Credited stakes, exact claim calculation, refunds and transaction history; claimed positions remain visible |
 | Agent table | `App.tsx` | Sortable aggregation with explicit column/row headers; agent 0 is people; horizontal scrolling on small screens |
 

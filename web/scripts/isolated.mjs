@@ -103,5 +103,6 @@ else if (mode === "typecheck") {
   run(process.execPath, [
     path.join(web, "scripts", files[mode]),
     ...(mode === "build:social" ? ["--social"] : []),
+    ...process.argv.slice(3),
   ]);
 }

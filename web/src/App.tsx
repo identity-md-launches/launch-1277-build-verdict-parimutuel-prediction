@@ -302,16 +302,41 @@ function Home() {
               How it works <span aria-hidden="true">→</span>
             </a>
           </div>
-          <div className="hero-proof">
-            <span className="proof-mark" aria-hidden="true">
-              ◎
-            </span>
-            Open evidence. Transparent settlement.
-          </div>
         </div>
         <HeroGraphic />
       </section>
-      <section aria-label="Live protocol statistics" className="stats-grid">
+      <section className="section home-markets">
+        <div className="section-head">
+          <h2>
+            {open.length || !data?.markets.length ? "Open markets" : "Recent markets"}
+          </h2>
+          <a className="text-link" href="#/markets">
+            All markets <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+        <DataBoundary>
+          {!!data?.markets.length && (
+            <div className="market-grid">
+              {(open.length ? open.slice(0, 6) : data.markets.slice(-2).reverse()).map(
+                (v) => <MarketCard key={String(v.id)} view={v} />,
+              )}
+            </div>
+          )}
+          {!open.length && (
+            <Empty
+              title="No markets are open for betting"
+              action={
+                <a href="#/markets" className="button">
+                  Explore settled markets <span aria-hidden="true">↗</span>
+                </a>
+              }
+            >
+              Explore settled markets, or create one if you’re an approved creator.
+            </Empty>
+          )}
+        </DataBoundary>
+      </section>
+      <section aria-label="Live protocol statistics" className="stats-grid section">
         {[
           ["Open markets", data ? String(open.length).padStart(2, "0") : "—"],
           [
@@ -342,55 +367,6 @@ function Home() {
           </div>
         ))}
       </section>
-      <section className="section">
-        <div className="section-head">
-          <div>
-            <h2>Open markets</h2>
-            <p className="muted">Find a question. Take a position.</p>
-          </div>
-          <a className="text-link" href="#/markets">
-            All markets <span aria-hidden="true">↗</span>
-          </a>
-        </div>
-        <DataBoundary>
-          {open.length ? (
-            <div className="market-grid">
-              {open.slice(0, 6).map((v) => (
-                <MarketCard key={String(v.id)} view={v} />
-              ))}
-            </div>
-          ) : (
-            <Empty
-              title="The next question is still open."
-              action={
-                <a href="#/markets" className="button">
-                  Explore settled markets <span aria-hidden="true">↗</span>
-                </a>
-              }
-            >
-              There are no markets accepting bets right now. See how earlier
-              questions were settled, or create one if you’re an approved
-              creator.
-            </Empty>
-          )}
-        </DataBoundary>
-      </section>
-      {!!data?.markets.length && !open.length && (
-        <section className="section recent-section">
-          <div className="section-head">
-            <h2>On the record</h2>
-            <span className="mono muted">Recent markets</span>
-          </div>
-          <div className="market-grid">
-            {data.markets
-              .slice(-2)
-              .reverse()
-              .map((v) => (
-                <MarketCard key={String(v.id)} view={v} />
-              ))}
-          </div>
-        </section>
-      )}
       <section className="section how-section">
         <div className="section-head">
           <h2>From question to verdict.</h2>

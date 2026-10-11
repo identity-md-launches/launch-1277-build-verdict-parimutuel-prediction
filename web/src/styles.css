@@ -505,19 +505,6 @@ button.primary:disabled {
   min-height: 50px;
   padding-inline: 24px;
 }
-.hero-proof {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 32px;
-  font-size: var(--s-caption);
-  color: var(--muted);
-  font-family: var(--font-mono);
-}
-.proof-mark {
-  color: var(--accent);
-  font-size: var(--s-subhead);
-}
 .hero-graphic {
   position: relative;
   isolation: isolate;
@@ -661,10 +648,8 @@ button.primary:disabled {
 }
 .stat > strong {
   font-size: var(--s-heading);
-  font-family: var(--font-heading);
-  font-stretch: 125%;
-  font-weight: 800;
-  letter-spacing: -0.035em;
+  font-family: var(--font-mono);
+  font-weight: 500;
   line-height: 1.25;
 }
 .stat strong small {
@@ -683,6 +668,12 @@ button.primary:disabled {
 }
 .section {
   margin-top: 64px;
+}
+.section.home-markets {
+  margin-top: 0;
+}
+.home-markets .market-grid + .empty-state {
+  margin-top: 24px;
 }
 .section-head {
   display: flex;
@@ -1479,8 +1470,8 @@ details .raw-data {
 }
 .fee-grid strong {
   font-size: var(--s-heading);
-  font-family: var(--font-heading);
-  font-stretch: 125%;
+  font-family: var(--font-mono);
+  font-weight: 500;
 }
 .fee-grid span,
 .fee-grid dt {
@@ -1499,8 +1490,8 @@ details .raw-data {
   border-radius: 6px;
 }
 .portfolio-stats .stat strong .number {
-  font-family: var(--font-heading);
-  font-stretch: 125%;
+  font-family: var(--font-mono);
+  font-weight: 500;
 }
 .positions {
   display: grid;
@@ -1935,16 +1926,16 @@ tbody tr:last-child > * {
   }
   .hero {
     display: block;
-    padding-top: 36px;
-    padding-bottom: 36px;
+    padding-top: 24px;
+    padding-bottom: 16px;
   }
   .hero h1 {
-    font-size: var(--s-title);
+    font-size: var(--s-heading);
     line-height: 1.12;
   }
   .hero-description {
     font-size: var(--s-body);
-    margin-block: 20px;
+    margin-block: 12px;
   }
   .hero-actions {
     gap: 16px;
@@ -1952,11 +1943,6 @@ tbody tr:last-child > * {
   }
   .hero-actions .primary {
     padding-inline: 18px;
-  }
-  .hero-proof {
-    margin-top: 24px;
-    font-size: var(--s-caption);
-    gap: 8px;
   }
   .hero-graphic {
     display: none;

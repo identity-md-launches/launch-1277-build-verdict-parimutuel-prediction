@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import assert from "node:assert/strict";
 import { DEFAULT_CHAIN, CHAINS } from "../src/config.ts";
+import { revisionChecks } from "./revision-cases.mjs";
+const revisionOnly = process.argv.includes("--revision");
 const require = createRequire(
   process.env.VERDICT_NODE_MODULES
     ? path.join(process.env.VERDICT_NODE_MODULES, "../package.json")
@@ -68,7 +70,9 @@ let scenario = "open",
   failPrimary = true,
   sent = [],
   selectedChain = CHAINS[1].chainId,
-  denied = false;
+  denied = false,
+  failTransaction = false,
+  failAccess = false;
 const requests = [],
   methods = [];
 const pools = [
@@ -136,7 +140,9 @@ function resolveRpc(payload) {
   if (method === "eth_getTransactionReceipt")
     return { result: captured.receipt };
   if (method === "eth_getTransactionByHash")
-    return { result: captured.transaction };
+    return failTransaction
+      ? { error: { code: -32603, message: "temporary transaction lookup unavailable" } }
+      : { result: captured.transaction };
   if (method === "eth_getLogs") {
     const [filter] = params;
     assert.ok(
@@ -225,7 +231,11 @@ function resolveRpc(payload) {
       else if (name === "maxPoolPerMarket") value = parseUnits("500", 18);
       else if (name === "paused") value = false;
       else if (name === "allowlistOn") value = true;
-      else if (name === "allowedCreators") value = allowed;
+      else if (name === "allowedCreators") {
+        if (failAccess)
+          return { error: { code: -32603, message: "temporary allowlist lookup unavailable" } };
+        value = allowed;
+      }
       else if (name === "marketCount") value = 2n;
       else if (name === "totalStake")
         value = id === 0 ? parseUnits("15", 18) : parseUnits("5", 18);
@@ -301,6 +311,7 @@ const browser = await chromium.launch({
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
   reducedMotion: "reduce",
+  ...(revisionOnly ? { timezoneId: "Asia/Taipei" } : {}),
 });
 const page = await context.newPage();
 const results = [],
@@ -429,6 +440,19 @@ const scanAxe = async (label) => {
   check(`Automated accessibility scan: ${label}`, scan.violations.length === 0);
 };
 try {
+  if (revisionOnly) {
+    await revisionChecks({
+      page, url, root, check, connect, scanAxe, requests, errors, results, axeResults,
+      configure: (options) => {
+        if (options.scenario !== undefined) scenario = options.scenario;
+        if (options.failTransaction !== undefined) failTransaction = options.failTransaction;
+        if (options.failAccess !== undefined) failAccess = options.failAccess;
+        if (options.allowed !== undefined) allowed = options.allowed;
+        if (options.advanceBlock) mockHead++;
+        return mockHead;
+      },
+    });
+  } else {
   await page.goto(url + "#/market/1");
   await page.getByText("Take a position", { exact: true }).waitFor();
   check(
@@ -739,6 +763,7 @@ try {
     JSON.stringify(report, null, 2) + "\n",
   );
   console.log(JSON.stringify(report, null, 2));
+  }
 } catch (e) {
   fs.writeFileSync(
     "/tmp/verdict-wallet-failure.json",

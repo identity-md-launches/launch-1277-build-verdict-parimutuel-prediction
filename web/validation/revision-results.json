@@ -1,0 +1,181 @@
+{
+  "checkedAt": "2026-10-11T08:12:57.386Z",
+  "scope": "Production dist/; captured RPC fixture and simulated EIP-6963 provider; no broadcasts",
+  "results": [
+    "390px first screen contains a complete recent question and View market action",
+    "Recent markets precede the statistics when none are open",
+    "Empty state clearly says no markets are open",
+    "Empty state retains the settled-market action",
+    "Homepage totals use IBM Plex Mono 500 without heading stretch or tracking",
+    "Automated accessibility scan: revised home, dark, 390px",
+    "Revised home has no document overflow at 360px",
+    "Revised home has no document overflow at 320px",
+    "Revised home has no document overflow at 820px",
+    "Revised home has no document overflow at 1440px",
+    "Keyboard review focuses the review panel",
+    "Both full bytes32 keys and None of these remain in the review",
+    "Complete list keys wrap within the review and viewport at 390px",
+    "Complete list keys wrap within the review and viewport at 360px",
+    "Complete list keys wrap within the review and viewport at 1440px",
+    "Creator review uses Taipei local time with the exact UTC hover value",
+    "Schedule helper no longer promises a UTC-only review",
+    "Automated accessibility scan: list creator review, dark, Taipei, 390px",
+    "New-block refresh preserves every creator field and the review",
+    "Scheduled refresh runs and preserves the draft and review",
+    "Temporary allowlist failure preserves the draft",
+    "Creation is disabled while access cannot be verified",
+    "Access retry restores the same draft and review",
+    "Actual allowlist revocation removes the creator form",
+    "Disconnecting and reconnecting resets the wallet-specific draft",
+    "Attestation failure offers the oracle directory, not a request ID as a job",
+    "Attestation failure displays the request UUID",
+    "Submit answer stays disabled for unverified data",
+    "Refresh retries transaction recovery with no new events or block",
+    "Recovered answer becomes available for proposal",
+    "Successful evidence links only the attested panel job",
+    "Further refreshes retain the verified attestation without rereading its transaction",
+    "Portfolio totals use IBM Plex Mono 500",
+    "Fee percentages use IBM Plex Mono 500",
+    "Open markets still lead the home section when available",
+    "No empty-market message appears when a market is open",
+    "Revision interactions produce no uncaught browser errors"
+  ],
+  "observations": {
+    "home": {
+      "hero": {
+        "top": 113,
+        "bottom": 342.5
+      },
+      "stats": {
+        "top": 1693.796875,
+        "bottom": 2009.796875
+      },
+      "question": {
+        "top": 468.5,
+        "bottom": 622.0625
+      },
+      "action": {
+        "top": 790.0625,
+        "bottom": 830.0625
+      },
+      "heading": "Recent markets"
+    },
+    "stats": [
+      {
+        "text": "00",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      },
+      {
+        "text": "01",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      },
+      {
+        "text": "20IMD",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      },
+      {
+        "text": "14.7IMD",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      },
+      {
+        "text": "0.075IMD",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      }
+    ],
+    "listWidths": [
+      {
+        "viewport": 390,
+        "document": 390,
+        "paragraph": 308,
+        "content": 308,
+        "font": "\"IBM Plex Mono\", monospace"
+      },
+      {
+        "viewport": 360,
+        "document": 360,
+        "paragraph": 286,
+        "content": 286,
+        "font": "\"IBM Plex Mono\", monospace"
+      },
+      {
+        "viewport": 1440,
+        "document": 1440,
+        "paragraph": 302,
+        "content": 302,
+        "font": "\"IBM Plex Mono\", monospace"
+      }
+    ],
+    "time": {
+      "text": "Jan 1, 2030, 12:00 PM",
+      "title": "Tue, 01 Jan 2030 04:00:00 GMT",
+      "dateTime": "2030-01-01T04:00:00.000Z"
+    },
+    "fallback": "https://explorer.imd.fun/oracle",
+    "retriedTransactionReads": 1,
+    "portfolio": [
+      {
+        "text": "20 IMD",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      },
+      {
+        "text": "19.7 IMD",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      }
+    ],
+    "fees": [
+      {
+        "text": "1%",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      },
+      {
+        "text": "0.5%",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      },
+      {
+        "text": "0.5%",
+        "family": "\"IBM Plex Mono\", monospace",
+        "weight": "500",
+        "stretch": "100%",
+        "tracking": "normal"
+      }
+    ]
+  },
+  "axeResults": [
+    {
+      "label": "revised home, dark, 390px",
+      "violations": []
+    },
+    {
+      "label": "list creator review, dark, Taipei, 390px",
+      "violations": []
+    }
+  ],
+  "errors": []
+}
