@@ -130,4 +130,116 @@ contract RevisionRegressionTest is TestBase {
         vm.expectRevert(VerdictMarkets.InvalidAttestation.selector);
         markets.propose(id, a);
     }
+
+    /// forge-config: default.fuzz.runs = 256
+    function testFuzz_eitherPaidPrimaryRequestCanProposeButCannotReplace(bool retryFirst, bool value) public {
+        uint256 id = create();
+        betAs(id, alice, 0, 101);
+        betAs(id, bob, 1, 202);
+        vm.warp(markets.getMarket(id).params.answerFrom);
+        bytes32 first = markets.resolve(id, body);
+        vm.warp(block.timestamp + 24 hours);
+        bytes32 retry = markets.resolve(id, body);
+        OracleAttestation.Attestation memory accepted = attestation(id, abi.encode(value), 5);
+        OracleAttestation.Attestation memory other = attestation(id, abi.encode(!value), 10);
+        deliver(retryFirst ? retry : first, accepted);
+        deliver(retryFirst ? first : retry, other);
+        assertEq(oracle.intakeRequestOf(accepted.requestId), retryFirst ? retry : first);
+        assertEq(oracle.intakeRequestOf(other.requestId), retryFirst ? first : retry);
+        markets.propose(id, accepted);
+        bytes32 beforeState = keccak256(abi.encode(markets.getMarket(id)));
+        vm.expectRevert(VerdictMarkets.UnauthenticatedAnswer.selector);
+        markets.propose(id, other);
+        assertEq(keccak256(abi.encode(markets.getMarket(id))), beforeState);
+        assertEq(markets.getMarket(id).asks, 2);
+        vm.warp(markets.getMarket(id).disputeEnds);
+        markets.finalize(id);
+        vm.prank(value ? bob : alice);
+        markets.claim(id);
+        assertConserved(id, true);
+        assertEq(token.balanceOf(address(markets)), 0);
+    }
+
+    function test_identicalEscalationBodiesStillRequireEachMarketsOwnPaidAsk() public {
+        uint256 first = create();
+        uint256 second = create();
+        betAs(first, alice, 0, 101);
+        betAs(first, bob, 1, 202);
+        betAs(second, alice, 0, 307);
+        betAs(second, bob, 1, 409);
+        primary(first, true);
+        primary(second, true);
+        bytes32 firstAsk = markets.escalate(first, escalationBody);
+        bytes32 secondAsk = markets.escalate(second, escalationBody);
+        OracleAttestation.Attestation memory correction = attestation(first, abi.encode(false), 10);
+        deliver(firstAsk, correction);
+        assertEq(oracle.answerOf(correction), markets.getMarket(second).escalationBodyHash);
+        bytes32 beforeState = keccak256(abi.encode(markets.getMarket(second)));
+        vm.expectRevert(VerdictMarkets.UnauthenticatedAnswer.selector);
+        markets.propose(second, correction);
+        assertEq(keccak256(abi.encode(markets.getMarket(second))), beforeState);
+        markets.propose(first, correction);
+        correction = attestation(second, abi.encode(true), 10);
+        deliver(secondAsk, correction);
+        markets.propose(second, correction);
+        vm.warp(markets.getMarket(second).disputeEnds);
+        markets.finalize(first);
+        markets.finalize(second);
+        vm.prank(alice);
+        markets.claim(first);
+        vm.prank(bob);
+        markets.claim(second);
+        assertConserved(first, true);
+        assertConserved(second, true);
+        assertEq(token.balanceOf(address(markets)), 0);
+    }
+
+    /// forge-config: default.fuzz.runs = 256
+    function testFuzz_lateEscalationHasFiniteSettlementDeadline(
+        uint32 windowSeed,
+        uint32 leadSeed,
+        uint32 latencySeed,
+        bool replacementArrives
+    ) public {
+        VerdictMarkets.Params memory p = params();
+        p.disputeWindow = uint32(bound(windowSeed, 1 hours, 3 days));
+        p.voidAfter = p.answerUntil + 1;
+        uint256 id = createWith(p);
+        betAs(id, alice, 0, 101);
+        betAs(id, bob, 1, 202);
+        vm.warp(p.answerFrom);
+        bytes32 rid = markets.resolve(id, body);
+        OracleAttestation.Attestation memory a = attestation(id, abi.encode(true), 5);
+        deliver(rid, a);
+        vm.warp(p.answerUntil - bound(leadSeed, 1, 1 hours - 1));
+        markets.propose(id, a);
+        vm.warp(p.answerUntil - 1);
+        rid = markets.escalate(id, escalationBody);
+        uint256 extendedEnd = markets.getMarket(id).disputeEnds;
+        assertGe(extendedEnd, block.timestamp + 24 hours);
+        vm.warp(p.answerUntil + bound(latencySeed, 1, extendedEnd - p.answerUntil - 1));
+        assertGe(block.timestamp, p.voidAfter);
+        if (replacementArrives) {
+            a = attestation(id, abi.encode(false), 10);
+            deliver(rid, a);
+            markets.propose(id, a);
+            assertEq(markets.getMarket(id).disputeEnds, block.timestamp + p.disputeWindow);
+            vm.expectRevert(VerdictMarkets.EscalationUnavailable.selector);
+            markets.propose(id, a); // The window cannot restart repeatedly.
+        }
+        vm.expectRevert(VerdictMarkets.OutsideWindow.selector);
+        markets.voidMarket(id);
+        uint256 deadline = markets.getMarket(id).disputeEnds;
+        assertLe(deadline, extendedEnd + p.disputeWindow);
+        vm.warp(deadline - 1);
+        vm.expectRevert(VerdictMarkets.OutsideWindow.selector);
+        markets.finalize(id);
+        vm.warp(deadline);
+        markets.finalize(id);
+        assertEq(markets.getMarket(id).outcome, replacementArrives ? 0 : 1);
+        vm.prank(replacementArrives ? alice : bob);
+        markets.claim(id);
+        assertConserved(id, true);
+        assertEq(token.balanceOf(address(markets)), 0);
+    }
 }

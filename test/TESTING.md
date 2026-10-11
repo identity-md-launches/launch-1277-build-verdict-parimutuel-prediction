@@ -50,6 +50,30 @@ finalization, both void paths, claims while paused, and creation after older mar
 expire. It checks action counters to catch accidental unreachable handler branches.
 The original three-market invariant remains enabled as a separate campaign.
 
+## Revision regression coverage
+
+The numeric interval generator now bounds its first threshold above zero, matching
+the revised validation. The explicit zero-bound rejection test remains enabled.
+The pre-revision generator failed at `first = 0`, `spacing = 6047842`,
+`valueSeed = 431597896588454`, `lengthSeed = 7` with `InvalidParams`; this was
+an invalid generated market, not a settlement defect.
+
+The lifecycle handler checks retries against the market's first recorded pending
+request. Escalation attestations use their actual issuance time, including issuance
+after `answerUntil`. A new random action purchases authenticated same-body answers
+independently and attempts to propose them. It checks rejection and unchanged
+market state and custody, before and after the market has paid for its own ask.
+Independent purchases have a separate balance-delta ledger, so they cannot hide
+market overspending or be counted as market deposits. Deterministic reachability
+tests exercise these probes, retry after an independent delivery, and late escalation
+settlement and complete withdrawal.
+
+`RevisionRegression.t.sol` additionally tests identical escalation bodies across
+markets, either arrival order of two paid primary answers, and fuzzed late escalation
+latency and dispute windows. Both missing and delivered escalation responses retain
+a finite settlement deadline; finalization rejects one second before that deadline,
+succeeds at it, and all eligible claims drain the market exactly.
+
 ## Scope and interpretation
 
 This is a local contract test suite. The mock Intake models exact payment, a single

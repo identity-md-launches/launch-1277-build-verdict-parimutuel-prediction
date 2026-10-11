@@ -15,12 +15,16 @@ contract VerdictLifecycleHandler is TestBase {
     uint256 public marketDonations;
     uint256 public burnDonations;
     uint256 public successfulBets;
+    uint256 public successfulPrimaryAsks;
     uint256 public successfulPrimaryAnswers;
     uint256 public successfulReplacements;
     uint256 public failedDeliveries;
     uint256 public finalizedMarkets;
     uint256 public voidedMarkets;
     uint256 public successfulClaims;
+    uint256 public independentOracleSpend;
+    uint256 public rejectedIndependentProposals;
+    uint256 public lateEscalationAnswers;
 
     struct Ledger {
         uint256 bounty;
@@ -143,13 +147,13 @@ contract VerdictLifecycleHandler is TestBase {
         ) return;
         if (
             ledger[id].asks != 0
-                && (block.timestamp < m.lastPrimaryAsk + 24 hours
-                    || oracle.lastDelivered(m.bodyHash) >= m.lastPrimaryAsk)
+                && (block.timestamp < m.lastPrimaryAsk + 24 hours || !oracle.hasPendingRequest(m.primaryRequests[0]))
         ) return;
         uint256 beforeBalance = token.balanceOf(address(intake));
         primaryRequests[id] = markets.resolve(id, primaryBody(id));
         ledger[id].spend += token.balanceOf(address(intake)) - beforeBalance;
         ++ledger[id].asks;
+        ++successfulPrimaryAsks;
     }
 
     function askEscalation(uint256 seed) public {
@@ -202,8 +206,8 @@ contract VerdictLifecycleHandler is TestBase {
         }
         uint8 side = outcomeSeed % m.outcomes;
         OracleAttestation.Attestation memory a = attestation(id, encodedAnswer(m, side), escalation ? 10 : 5);
-        // Model a timely answer that may arrive after the issuing window closes.
-        if (a.issuedAt > m.params.answerUntil) a.issuedAt = m.params.answerUntil;
+        // Primary issuance has a fixed cutoff; a paid escalation uses the extended window.
+        if (!escalation && a.issuedAt > m.params.answerUntil) a.issuedAt = m.params.answerUntil;
         bytes memory signature = corrupt ? signDigest(SIGNER_KEY + 1, oracle.attestationDigest(a)) : sign(a);
         bytes32 beforeState = keccak256(abi.encode(m));
         (bool ok, uint256 gasUsed) = intake.deliver(requestId, a, signature, 150_000);
@@ -219,8 +223,45 @@ contract VerdictLifecycleHandler is TestBase {
         markets.propose(id, a);
         assertEq(markets.getMarket(id).outcome, side, "answer mapped to wrong outcome");
         assertEq(markets.getMarket(id).disputeEnds, block.timestamp + m.params.disputeWindow);
-        if (escalation) ++successfulReplacements;
-        else ++successfulPrimaryAnswers;
+        if (escalation) {
+            ++successfulReplacements;
+            if (a.issuedAt > m.params.answerUntil) ++lateEscalationAnswers;
+        } else {
+            ++successfulPrimaryAnswers;
+        }
+    }
+
+    /// @dev A buyer can obtain a genuine signature for the exact same body and domain.
+    /// It must not establish or replace this market's outcome, or consume its bounty.
+    function probeIndependentAnswer(uint256 seed, uint8 outcomeSeed, bool escalationBodyChoice) public {
+        uint256 id = seed % count + 1;
+        VerdictMarkets.Market memory m = markets.getMarket(id);
+        if (block.timestamp < m.params.answerFrom) return;
+        if (m.status == VerdictMarkets.Status.Open) {
+            if (block.timestamp >= m.params.voidAfter) return;
+        } else if (m.status == VerdictMarkets.Status.Provisional) {
+            if (m.escalated || block.timestamp >= m.disputeEnds) return;
+        } else {
+            return;
+        }
+        bytes memory requestedBody = escalationBodyChoice ? secondBody(id) : primaryBody(id);
+        uint256 intakeBefore = token.balanceOf(address(intake));
+        bytes32 rid = oracle.request(requestedBody);
+        independentOracleSpend += token.balanceOf(address(intake)) - intakeBefore;
+        uint8 side = outcomeSeed % m.outcomes;
+        OracleAttestation.Attestation memory a = attestation(id, encodedAnswer(m, side), 10);
+        if (m.status == VerdictMarkets.Status.Open && a.issuedAt > m.params.answerUntil) {
+            a.issuedAt = m.params.answerUntil;
+        }
+        deliver(rid, a);
+        assertEq(oracle.answerOf(a), keccak256(requestedBody), "probe needs a genuine stored answer");
+        assertEq(oracle.intakeRequestOf(a.requestId), rid);
+        uint256 heldBefore = token.balanceOf(address(markets));
+        vm.expectRevert(VerdictMarkets.UnauthenticatedAnswer.selector);
+        markets.propose(id, a);
+        assertEq(keccak256(abi.encode(markets.getMarket(id))), keccak256(abi.encode(m)));
+        assertEq(token.balanceOf(address(markets)), heldBefore);
+        ++rejectedIndependentProposals;
     }
 
     function advance(uint256 seed, uint8 boundary, uint32 delta) public {
@@ -406,7 +447,7 @@ contract VerdictLifecycleHandler is TestBase {
         }
         assertEq(token.balanceOf(address(markets)), held, "aggregate custody mismatch");
         assertEq(token.balanceOf(address(oracle)), 0);
-        assertEq(token.balanceOf(address(intake)), allSpend);
+        assertEq(token.balanceOf(address(intake)), allSpend + independentOracleSpend);
         assertEq(token.balanceOf(address(burn)), allBurn, "burn balance decreased or fee misdirected");
         assertEq(token.balanceOf(treasury), allTreasury);
         assertEq(token.allowance(address(markets), address(oracle)), 0);
@@ -440,7 +481,7 @@ contract VerdictLifecycleInvariantTest is Test {
 
     function setUp() public {
         handler = new VerdictLifecycleHandler();
-        bytes4[] memory selectors = new bytes4[](12);
+        bytes4[] memory selectors = new bytes4[](13);
         selectors[0] = handler.openMarket.selector;
         selectors[1] = handler.wager.selector;
         selectors[2] = handler.askPrimary.selector;
@@ -453,6 +494,7 @@ contract VerdictLifecycleInvariantTest is Test {
         selectors[9] = handler.donate.selector;
         selectors[10] = handler.probeBurn.selector;
         selectors[11] = handler.probeTerminal.selector;
+        selectors[12] = handler.probeIndependentAnswer.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
         targetContract(address(handler));
     }
@@ -498,5 +540,41 @@ contract VerdictLifecycleInvariantTest is Test {
         handler.wager(4, 3, 1, 7, 1000, 1);
         handler.checkAccounting();
         handler.drainAndCheck();
+    }
+
+    function test_handlerIndependentAnswersCannotBlockRetryOrShopOutcomes() public {
+        handler.advance(0, 1, 0);
+        handler.askPrimary(0);
+        handler.probeIndependentAnswer(0, 1, false);
+        handler.probeIndependentAnswer(0, 0, true); // Escalation cannot be the first proposal.
+        for (uint256 i; i < 4; ++i) {
+            handler.advance(0, 0, 6 hours);
+        }
+        handler.askPrimary(0); // Genuine pending first request permits retry despite global delivery.
+        assertEq(handler.successfulPrimaryAsks(), 2, "independent answer blocked the market's retry");
+        handler.deliverAnswer(0, 1, false, false);
+        handler.probeIndependentAnswer(0, 0, true); // Cannot replace after two primary asks.
+        handler.checkAccounting();
+        assertEq(handler.rejectedIndependentProposals(), 3);
+        assertEq(handler.independentOracleSpend(), 1.5 ether);
+        handler.drainAndCheck();
+        assertEq(handler.finalizedMarkets(), 1);
+    }
+
+    function test_handlerUsesActualLateEscalationIssuanceAndStillDrains() public {
+        handler.advance(0, 2, 0); // answerUntil - 1
+        handler.askPrimary(0);
+        handler.deliverAnswer(0, 0, false, false);
+        handler.probeIndependentAnswer(0, 1, true); // No paid escalation yet.
+        handler.askEscalation(0);
+        handler.probeIndependentAnswer(0, 1, true); // Paid ask exists, but this answer belongs to a buyer.
+        handler.advance(0, 5, 0); // voidAfter, beyond the primary issuance cutoff
+        handler.deliverAnswer(0, 1, true, false);
+        assertEq(handler.lateEscalationAnswers(), 1);
+        assertEq(handler.successfulReplacements(), 1);
+        assertEq(handler.rejectedIndependentProposals(), 2);
+        handler.checkAccounting();
+        handler.drainAndCheck();
+        assertEq(handler.finalizedMarkets(), 1);
     }
 }

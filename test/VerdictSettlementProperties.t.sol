@@ -165,9 +165,12 @@ contract VerdictSettlementPropertiesTest is TestBase {
         p.answerType = 3;
         uint256 length = bound(lengthSeed, 1, 7);
         uint256 width = uint256(spacing) + 1;
+        // The revision forbids an unreachable first bucket; zero-bound rejection
+        // is covered separately in RevisionRegressionTest.
+        uint256 firstBound = bound(first, 1, type(uint128).max);
         p.bounds = new uint256[](length);
         for (uint256 i; i < length; ++i) {
-            p.bounds[i] = uint256(first) + i * width;
+            p.bounds[i] = firstBound + i * width;
         }
         uint256 value = bound(valueSeed, 0, p.bounds[length - 1] + width);
         uint256 id = createWith(p);
