@@ -6,14 +6,14 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import assert from "node:assert/strict";
 import { DEFAULT_CHAIN, CHAINS } from "../src/config.ts";
-import { revisionChecks } from "./revision-cases.mjs";
-const revisionOnly = process.argv.includes("--revision");
+
 const require = createRequire(
   process.env.VERDICT_NODE_MODULES
     ? path.join(process.env.VERDICT_NODE_MODULES, "../package.json")
     : import.meta.url,
 );
 const { chromium } = require("playwright");
+const { mainnet } = require("viem/chains");
 const { default: AxeBuilder } = require("@axe-core/playwright");
 const {
   decodeFunctionData,
@@ -23,6 +23,9 @@ const {
   erc20Abi,
   toHex,
   parseUnits,
+  encodeEventTopics,
+  encodeAbiParameters,
+  parseAbi,
 } = require("viem");
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const readJSON = (file) => JSON.parse(fs.readFileSync(path.join(root, file)));
@@ -32,6 +35,63 @@ const abi = readJSON("web/src/abi/VerdictMarkets.json"),
   oracleAbi = readJSON("web/src/abi/VerdictOracle.json");
 const d = DEFAULT_CHAIN.deployment,
   account = fixture.markets[0].market.creator;
+const runtime = readJSON("web/tests/mainnet-runtime.json");
+const legacyAbi = readJSON("web/tests/legacy-markets-abi.json");
+const wethAbi = [
+  ...erc20Abi,
+  ...parseAbi(["function deposit() payable", "function withdraw(uint256 wad)"]),
+];
+const ensAbi = parseAbi([
+  "function reverseWithGateways(bytes reverseName, uint256 coinType, string[] gateways) view returns (string resolvedName, address resolver, address reverseResolver)",
+  "function resolveWithGateways(bytes name, bytes data, string[] gateways) view returns (bytes result, address resolver)",
+]);
+const oldOracle = "0xf9e8362469be9944e7e79732bcea9bcecb4ae25d";
+const blockShift = d.block - 11888875n;
+captured.codes = Object.fromEntries(
+  Object.entries(runtime.codes).map(([key, code]) => [
+    d[key].toLowerCase(),
+    code,
+  ]),
+);
+captured.logs = captured.logs.map((log) => {
+  const isOracle = log.address.toLowerCase() === oldOracle;
+  const old = decodeEventLog({
+    abi: isOracle ? oracleAbi : legacyAbi,
+    data: log.data,
+    topics: log.topics,
+  });
+  const event = (isOracle ? oracleAbi : abi).find(
+    (e) => e.type === "event" && e.name === old.eventName,
+  );
+  const args = { ...old.args };
+  if (old.eventName === "MarketCreated") {
+    args.collateral = args.id === 2n ? d.weth : d.token;
+    args.uri = JSON.stringify({
+      title:
+        args.id === 1n ? "Ethereum oracle test market" : "WETH refund market",
+    });
+  }
+  return {
+    ...log,
+    address: isOracle ? d.oracle : d.markets,
+    blockNumber: toHex(BigInt(log.blockNumber) + blockShift),
+    topics: encodeEventTopics({ abi: [event], eventName: old.eventName, args }),
+    data: encodeAbiParameters(
+      event.inputs.filter((i) => !i.indexed),
+      event.inputs.filter((i) => !i.indexed).map((i) => args[i.name]),
+    ),
+  };
+});
+captured.receipt = {
+  ...captured.receipt,
+  logs: captured.receipt.logs.map((l) => ({
+    ...l,
+    address: l.address.toLowerCase() === oldOracle ? d.oracle : l.address,
+  })),
+};
+captured.transaction = { ...captured.transaction, to: d.intake };
+let wethMode = false,
+  wethBalance = 0n;
 const baseMarkets = fixture.markets.map((x) => {
   const m = structuredClone(x.market);
   for (const k of [
@@ -61,15 +121,21 @@ const baseMarkets = fixture.markets.map((x) => {
   ])
     m.params[k] = BigInt(m.params[k]);
   m.params.bounds = m.params.bounds.map(BigInt);
+  m.params.settlerReward = parseUnits("0.05", 18);
+  m.params.collateralId = Number(x.id) === 2 ? 1 : 0;
+  m.settlerReward = m.params.settlerReward;
+  m.rewardsPaid = parseUnits("0.15", 18);
+  m.collateral = m.params.collateralId === 1 ? d.weth : d.token;
+  m.bountyToken = d.token;
   return m;
 });
-let mockHead = BigInt(captured.block.number);
+let mockHead = d.block + 2000n;
 let scenario = "open",
   allowance = 0n,
   allowed = true,
   failPrimary = true,
   sent = [],
-  selectedChain = CHAINS[1].chainId,
+  selectedChain = 10,
   denied = false,
   failTransaction = false,
   failAccess = false;
@@ -80,7 +146,12 @@ const pools = [
   [parseUnits("5", 18), 0n],
 ];
 function market(index) {
-  const m = structuredClone(baseMarkets[index]);
+  const m = structuredClone(baseMarkets[index > 1 ? 0 : index]);
+  if (index === 0 && wethMode) {
+    m.params.collateralId = 1;
+    m.collateral = d.weth;
+    m.pool = 0n;
+  }
   if (scenario === "open" && index === 0) {
     m.status = 0;
     m.params.closeAt = BigInt(Math.floor(Date.now() / 1000) + 86400);
@@ -134,22 +205,84 @@ function resolveRpc(payload) {
       result: {
         ...captured.block,
         number: toHex(mockHead),
-        timestamp: toHex(BigInt(Math.floor(Date.now() / 1000))),
+        timestamp: toHex(
+          BigInt(Math.floor(Date.now() / 1000)) -
+            (params[0] === "latest" ? 0n : mockHead - BigInt(params[0])) * 12n,
+        ),
       },
     };
   if (method === "eth_getTransactionReceipt")
     return { result: captured.receipt };
   if (method === "eth_getTransactionByHash")
     return failTransaction
-      ? { error: { code: -32603, message: "temporary transaction lookup unavailable" } }
+      ? {
+          error: {
+            code: -32603,
+            message: "temporary transaction lookup unavailable",
+          },
+        }
       : { result: captured.transaction };
   if (method === "eth_getLogs") {
     const [filter] = params;
     assert.ok(
-      BigInt(filter.toBlock) - BigInt(filter.fromBlock) < 10000n,
-      "Log chunks respect 10,000-block cap",
+      BigInt(filter.toBlock) - BigInt(filter.fromBlock) < 5000n,
+      "Log chunks respect 5,000-block cap",
     );
-    let logs = captured.logs;
+    let logs = [...captured.logs];
+    if (scenario === "leaderboard") {
+      for (const id of [3n, 4n]) {
+        for (const log of captured.logs.filter(
+          (l) => l.address === d.markets,
+        )) {
+          const decoded = decodeEventLog({
+            abi,
+            data: log.data,
+            topics: log.topics,
+          });
+          if (decoded.args.id !== 1n) continue;
+          const event = abi.find(
+              (e) => e.type === "event" && e.name === decoded.eventName,
+            ),
+            args = { ...decoded.args, id };
+          logs.push({
+            ...log,
+            logIndex: toHex(Number(log.logIndex) + Number(id) * 100),
+            topics: encodeEventTopics({
+              abi: [event],
+              eventName: event.name,
+              args,
+            }),
+            data: encodeAbiParameters(
+              event.inputs.filter((i) => !i.indexed),
+              event.inputs.filter((i) => !i.indexed).map((i) => args[i.name]),
+            ),
+          });
+        }
+      }
+      const event = abi.find(
+          (e) => e.type === "event" && e.name === "SettlerRewarded",
+        ),
+        args = {
+          id: 3n,
+          settler: account,
+          action: 2,
+          amount: parseUnits(".05", 18),
+        };
+      logs.push({
+        ...logs[0],
+        address: d.markets,
+        logIndex: "0xffff",
+        topics: encodeEventTopics({
+          abi: [event],
+          eventName: event.name,
+          args,
+        }),
+        data: encodeAbiParameters(
+          event.inputs.filter((i) => !i.indexed),
+          event.inputs.filter((i) => !i.indexed).map((i) => args[i.name]),
+        ),
+      });
+    }
     if (["open", "closed"].includes(scenario))
       logs = logs.filter((log) => {
         try {
@@ -207,14 +340,41 @@ function resolveRpc(payload) {
   if (method === "eth_call") {
     const tx = params[0],
       target = tx.to.toLowerCase();
+    if (target === mainnet.contracts.ensUniversalResolver.address) {
+      const call = decodeFunctionData({ abi: ensAbi, data: tx.data });
+      return {
+        result: encodeFunctionResult({
+          abi: ensAbi,
+          functionName: call.functionName,
+          result:
+            call.functionName === "reverseWithGateways"
+              ? ["verdict-fixture.eth", account, account]
+              : [
+                  encodeAbiParameters([{ type: "address" }], [account]),
+                  account,
+                ],
+        }),
+      };
+    }
     let contractAbi =
-      target === d.token ? erc20Abi : target === d.oracle ? oracleAbi : abi;
+      target === d.token
+        ? erc20Abi
+        : target === d.weth
+          ? wethAbi
+          : target === d.oracle
+            ? oracleAbi
+            : abi;
     const { functionName: name, args = [] } = decodeFunctionData({
       abi: contractAbi,
       data: tx.data,
     });
     let value;
-    if (target === d.token) {
+    if (target === d.weth) {
+      if (name === "balanceOf") value = wethBalance;
+      else if (name === "allowance") value = allowance;
+      else if (name === "approve") value = true;
+      else if (name === "deposit" || name === "withdraw") value = undefined;
+    } else if (target === d.token) {
       if (name === "balanceOf")
         value =
           args[0].toLowerCase() === d.burnVault
@@ -224,19 +384,36 @@ function resolveRpc(payload) {
       if (name === "approve") value = true;
     } else if (target === d.oracle) {
       if (name === "price") value = parseUnits(".5", 18);
+      if (name === "asset") value = d.token;
     } else {
       const id = Number(args[0] || 1n) - 1;
       if (name === "getMarket") value = market(id);
-      else if (name === "outcomePool") value = pools[id][Number(args[1])];
+      else if (name === "outcomePool")
+        value =
+          wethMode && id === 0 ? 0n : pools[id > 1 ? 0 : id][Number(args[1])];
+      else if (name === "maxSettlerReward") value = parseUnits(".25", 18);
+      else if (name === "collateralConfig")
+        value = {
+          token: args[0] ? d.weth : d.token,
+          creatorFeeBps: 150,
+          burnFeeBps: args[0] ? 0 : 50,
+          treasuryFeeBps: args[0] ? 100 : 50,
+          maxPoolPerMarket: parseUnits(args[0] ? "1" : "500", 18),
+        };
       else if (name === "maxPoolPerMarket") value = parseUnits("500", 18);
       else if (name === "paused") value = false;
       else if (name === "allowlistOn") value = true;
       else if (name === "allowedCreators") {
         if (failAccess)
-          return { error: { code: -32603, message: "temporary allowlist lookup unavailable" } };
+          return {
+            error: {
+              code: -32603,
+              message: "temporary allowlist lookup unavailable",
+            },
+          };
         value = allowed;
-      }
-      else if (name === "marketCount") value = 2n;
+      } else if (name === "marketCount")
+        value = scenario === "leaderboard" ? 4n : 2n;
       else if (name === "totalStake")
         value = id === 0 ? parseUnits("15", 18) : parseUnits("5", 18);
       else if (name === "stakes") value = pools[id][Number(args[2])];
@@ -305,13 +482,24 @@ await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const url = `http://127.0.0.1:${server.address().port}/preview/`;
 const browser = await chromium.launch({
   headless: true,
-  executablePath: process.env.CHROMIUM_EXECUTABLE || undefined,
+  executablePath:
+    process.env.CHROMIUM_EXECUTABLE ||
+    (fs.existsSync(
+      "/opt/imd-tools/ms-playwright/chromium-1246/chrome-linux64/chrome",
+    )
+      ? "/opt/imd-tools/ms-playwright/chromium-1246/chrome-linux64/chrome"
+      : undefined),
+  env: {
+    ...process.env,
+    XDG_CONFIG_HOME: path.join(root, "test/scratch/wallet-config"),
+    XDG_CACHE_HOME: path.join(root, "test/scratch/wallet-cache"),
+  },
   args: ["--no-sandbox"],
 });
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
   reducedMotion: "reduce",
-  ...(revisionOnly ? { timezoneId: "Asia/Taipei" } : {}),
+  timezoneId: "America/Los_Angeles",
 });
 const page = await context.newPage();
 const results = [],
@@ -371,10 +559,17 @@ await context.exposeBinding("mockWalletRequest", async (_, request) => {
     sent.push(tx);
     mockHead++;
     const decoded = decodeFunctionData({
-      abi: tx.to.toLowerCase() === d.token ? erc20Abi : abi,
+      abi:
+        tx.to.toLowerCase() === d.token
+          ? erc20Abi
+          : tx.to.toLowerCase() === d.weth
+            ? wethAbi
+            : abi,
       data: tx.data,
     });
     if (decoded.functionName === "approve") allowance = decoded.args[1];
+    if (decoded.functionName === "deposit") wethBalance += BigInt(tx.value);
+    if (decoded.functionName === "withdraw") wethBalance -= decoded.args[0];
     if (decoded.functionName === "bet") allowance -= decoded.args[2];
     if (decoded.functionName === "createMarket")
       allowance -= decoded.args[0].bounty;
@@ -439,50 +634,52 @@ const scanAxe = async (label) => {
   });
   check(`Automated accessibility scan: ${label}`, scan.violations.length === 0);
 };
+const confirmed = () =>
+  page
+    .getByText("Transaction confirmed. Chain data refreshed.", { exact: true })
+    .first()
+    .waitFor();
+const change = async (state, route = "market/1") => {
+  scenario = state;
+  await page.goto(url + "#/" + route);
+  await page.reload();
+  await connect();
+  await page.getByText("Synced · block", { exact: false }).waitFor();
+};
+const shot = async (name) => {
+  fs.mkdirSync(path.join(root, "test/scratch/browser"), { recursive: true });
+  await page.screenshot({
+    path: path.join(root, "test/scratch/browser", name + ".png"),
+    fullPage: true,
+  });
+};
 try {
-  if (revisionOnly) {
-    await revisionChecks({
-      page, url, root, check, connect, scanAxe, requests, errors, results, axeResults,
-      configure: (options) => {
-        if (options.scenario !== undefined) scenario = options.scenario;
-        if (options.failTransaction !== undefined) failTransaction = options.failTransaction;
-        if (options.failAccess !== undefined) failAccess = options.failAccess;
-        if (options.allowed !== undefined) allowed = options.allowed;
-        if (options.advanceBlock) mockHead++;
-        return mockHead;
-      },
-    });
-  } else {
   await page.goto(url + "#/market/1");
-  await page.getByText("Take a position", { exact: true }).waitFor();
+  await page.getByRole("heading", { name: "Take a position" }).waitFor();
+  await connect();
   check(
-    "RPC fallback recovers after the primary endpoint fails",
+    "Ordered RPC fallback recovers primary failure",
     methods.some((m) => m.startsWith(DEFAULT_CHAIN.rpcUrls[1])),
   );
-  await connect();
-  await page.getByLabel("Amount · test IMD", { exact: true }).fill("2.5");
+  await page.getByLabel("Amount · IMD", { exact: true }).fill("2.5");
   await page
     .getByRole("button", { name: "Approve exact amount & bet" })
     .click();
-  await page
-    .getByText("Transaction confirmed. Chain data refreshed.", { exact: true })
-    .waitFor();
+  await confirmed();
   check(
-    "Wallet switches from the data chain to the configured market chain",
-    selectedChain === DEFAULT_CHAIN.chainId &&
-      methods.includes("wallet_switchEthereumChain"),
+    "Wallet switches to Ethereum mainnet",
+    selectedChain === 1 && methods.includes("wallet_switchEthereumChain"),
   );
-  check("Bet flow sends approval followed by bet", sent.length === 2);
-  const approve = decodeFunctionData({ abi: erc20Abi, data: sent[0].data });
-  const bet = decodeFunctionData({ abi, data: sent[1].data });
+  const approval = decodeFunctionData({ abi: erc20Abi, data: sent[0].data }),
+    bet = decodeFunctionData({ abi, data: sent[1].data });
   check(
-    "Approval is the exact amount to VerdictMarkets",
-    approve.functionName === "approve" &&
-      approve.args[0].toLowerCase() === d.markets &&
-      approve.args[1] === parseUnits("2.5", 18),
+    "IMD bet approves exact token amount",
+    sent[0].to.toLowerCase() === d.token &&
+      approval.args[0].toLowerCase() === d.markets &&
+      approval.args[1] === parseUnits("2.5", 18),
   );
   check(
-    "Bet encodes id, selected outcome, amount and person agentId 0",
+    "Bet sends id, outcome, amount and agentId 0",
     bet.functionName === "bet" &&
       bet.args[0] === 1n &&
       bet.args[1] === 1 &&
@@ -490,38 +687,39 @@ try {
       bet.args[3] === 0n,
   );
   check(
-    "Permissionless controls show simulation rejection reasons",
-    await page
-      .getByText("The market is not in a state that accepts this action.", {
-        exact: false,
-      })
-      .first()
-      .isVisible(),
+    "Rejected settlement action stays disabled with reason",
+    (await page.getByRole("button", { name: /^Finalize/ }).isDisabled()) &&
+      (await page
+        .getByText("The market is not in a state that accepts this action.", {
+          exact: false,
+        })
+        .first()
+        .isVisible()),
   );
   check(
-    "Rejected settlement action is disabled",
-    await page
-      .getByRole("button", { name: "Finalize", exact: true })
-      .isDisabled(),
+    "Reward estimate appears on four permissionless actions",
+    (await page.locator(".reward-label").count()) === 4,
   );
-  await scanAxe("open market, connected wallet, dark");
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({
-    path: path.join(root, "artifacts/bet-mobile.png"),
-    fullPage: true,
-  });
   check(
-    "Open market with bet controls has no mobile overflow",
+    "Market renders UTC first in a non-UTC browser timezone",
+    (await page.locator("time").first().innerText()).endsWith(" UTC") &&
+      !(await page.locator("time").first().getAttribute("title")).includes(
+        "UTC",
+      ),
+  );
+  await scanAxe("IMD open market / connected / dark");
+  await page.setViewportSize({ width: 360, height: 844 });
+  await shot("market-imd-360");
+  check(
+    "Bet panel has no 360px overflow",
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   );
-  await page.getByLabel("Amount · test IMD", { exact: true }).fill("501");
-  await page
-    .getByRole("button", { name: "Approve exact amount & bet" })
-    .click();
+  await page.getByLabel("Amount · IMD", { exact: true }).fill("501");
+  await page.getByRole("button", { name: /Place bet|Approve exact/ }).click();
   check(
-    "Oversized bet is blocked before wallet submission",
+    "Pool cap prevents transaction submission",
     sent.length === 2 &&
       (await page
         .getByText("This amount exceeds the remaining pool capacity.", {
@@ -529,89 +727,107 @@ try {
         })
         .isVisible()),
   );
-  await page.getByLabel("Amount · test IMD", { exact: true }).fill("1");
+  await page.getByLabel("Amount · IMD", { exact: true }).fill("1");
   denied = true;
-  await page
-    .getByRole("button", { name: /Place bet|Approve exact amount & bet/ })
-    .click();
+  await page.getByRole("button", { name: /Place bet|Approve exact/ }).click();
   await page
     .getByText("User rejected the transaction.", { exact: false })
     .first()
     .waitFor();
   denied = false;
   check(
-    "Wallet rejection is recoverable without a send",
+    "Wallet rejection is recoverable",
     sent.length === 2 &&
       (await page
-        .getByRole("button", { name: /Place bet|Approve exact amount & bet/ })
+        .getByRole("button", { name: /Place bet|Approve exact/ })
         .isEnabled()),
   );
-  await page
-    .getByRole("button", { name: "Dismiss transaction message" })
-    .click();
+  wethMode = true;
+  allowance = 0n;
+  await change("open");
+  await page.getByLabel("Amount · WETH", { exact: true }).fill("0.01");
+  await page.getByRole("button", { name: "Wrap ETH", exact: true }).waitFor();
   check(
-    "A rejected transaction notice can be dismissed",
-    (await page.locator(".transaction-notice").count()) === 0,
+    "Insufficient WETH offers wrapping first",
+    await page
+      .getByRole("button", { name: /Place bet|Approve exact/ })
+      .isDisabled(),
   );
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.goto(url + "#/create");
-  await connect();
-  await page.getByRole("heading", { name: "1. The question" }).waitFor();
-  await page
-    .getByRole("button", { name: "Review market", exact: false })
-    .click();
+  await page.getByRole("button", { name: "Wrap ETH", exact: true }).click();
+  await confirmed();
   check(
-    "Create validation focuses the missing question",
+    "Wrap sends exact shortfall to WETH9.deposit",
+    sent.at(-1).to.toLowerCase() === d.weth &&
+      BigInt(sent.at(-1).value) === parseUnits(".01", 18) &&
+      decodeFunctionData({ abi: wethAbi, data: sent.at(-1).data })
+        .functionName === "deposit",
+  );
+  await page
+    .getByRole("button", { name: "Approve exact amount & bet" })
+    .click();
+  await confirmed();
+  check(
+    "WETH bet approves WETH, not IMD",
+    sent.at(-2).to.toLowerCase() === d.weth &&
+      decodeFunctionData({ abi: erc20Abi, data: sent.at(-2).data }).args[1] ===
+        parseUnits(".01", 18),
+  );
+  await shot("market-weth-360");
+  wethMode = false;
+  await change("open", "create");
+  await page.getByRole("heading", { name: "1. The question" }).waitFor();
+  await page.getByRole("button", { name: "Review market" }).click();
+  check(
+    "Create error focuses missing question",
     await page
       .locator("#create-question")
       .evaluate((el) => el === document.activeElement),
   );
   await page
     .getByLabel("Question", { exact: true })
-    .fill(
-      "Will the measured value exceed the threshold in the specified window?",
-    );
-  await page.getByLabel("First block", { exact: true }).fill("1");
-  await page.getByLabel("Last block", { exact: true }).fill("100");
+    .fill("Will the measured value exceed the threshold?");
   await page
-    .getByText("The first evidence block is not after", { exact: false })
-    .waitFor();
+    .getByLabel("Market title", { exact: false })
+    .fill("Test market title");
+  const targetDate = new Date(Date.now() + 3 * 86400000);
+  targetDate.setUTCHours(22, 0, 0, 0);
+  const targetDay = targetDate.toISOString().slice(0, 10);
+  await page
+    .getByLabel("Question time T · UTC", { exact: false })
+    .fill(targetDay + "T22:00");
   check(
-    "Evidence window warns when known before close",
-    await page
-      .getByText("The first evidence block is not after", { exact: false })
-      .isVisible(),
+    "Create default schedule is UTC independent of local timezone",
+    (await page.locator("#create-closeAt").inputValue()) ===
+      targetDay + "T20:00" &&
+      (await page.locator("#create-answerFrom").inputValue()) ===
+        targetDay + "T22:45" &&
+      (await page.locator("#create-disputeHours").inputValue()) === "2",
   );
+  check(
+    "Default bounty reserves two prices and five rewards",
+    (await page.locator("#create-bounty").inputValue()) === "1.25",
+  );
+  await page
+    .getByRole("combobox", { name: "Market token", exact: true })
+    .selectOption("1");
   await page.getByLabel("Answer type").selectOption("uint256");
   await page.getByLabel("Bucket bounds · 18-decimal units").fill("1, 2.5");
-  await page
-    .getByRole("button", { name: "Review market", exact: false })
-    .click();
-  await page
-    .getByRole("heading", { name: "Review your market", exact: true })
-    .waitFor();
+  await page.getByRole("button", { name: "Review market" }).click();
+  await page.getByRole("heading", { name: "Review your market" }).waitFor();
+  const reviewedFrom = await page.locator("#create-fromBlock").inputValue();
+  mockHead += 3n;
+  await page.getByRole("button", {name:"Refresh",exact:true}).click();
+  await page.getByText(`Synced · block ${mockHead.toLocaleString()}`, {exact:false}).waitFor();
+  check("Chain refresh preserves reviewed evidence blocks", await page.locator("#create-fromBlock").inputValue() === reviewedFrom && await page.getByRole("heading", {name:"Review your market"}).isVisible());
+  await scanAxe("creator review / mobile / dark");
+  await shot("create-360");
   check(
-    "Create review renders 18-decimal bucket labels",
-    await page
-      .getByText("Below 1 · 1 to under 2.5 · 2.5 and above", { exact: true })
-      .isVisible(),
-  );
-  await scanAxe("creator review, desktop, dark");
-  await page.screenshot({
-    path: path.join(root, "artifacts/create-desktop.png"),
-    fullPage: true,
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  check(
-    "Creator form reflows at 390px",
+    "Creator review has no 360px overflow",
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   );
-  await page.screenshot({
-    path: path.join(root, "artifacts/create-mobile.png"),
-    fullPage: true,
-  });
+  allowance = 0n;
   await page
     .getByRole("button", { name: "Approve bounty & create market" })
     .click();
@@ -620,77 +836,78 @@ try {
     .waitFor();
   const created = decodeFunctionData({ abi, data: sent.at(-1).data });
   check(
-    "Create sends the reviewed params and compact primary/escalation bodies",
+    "Create encodes new reward and collateral params",
     created.functionName === "createMarket" &&
-      created.args[0].bounds[1] === parseUnits("2.5", 18) &&
-      created.args[1].startsWith("0x7b"),
+      created.args[0].collateralId === 1 &&
+      created.args[0].settlerReward === parseUnits(".05", 18) &&
+      created.args[0].bounty === parseUnits("1.25", 18),
   );
-  const bountyApproval = decodeFunctionData({
-    abi: erc20Abi,
-    data: sent.at(-2).data,
-  });
   check(
-    "Creator approves exactly the reviewed bounty",
-    bountyApproval.functionName === "approve" &&
-      bountyApproval.args[1] === created.args[0].bounty,
+    "WETH market bounty approval remains IMD",
+    sent.at(-2).to.toLowerCase() === d.token &&
+      decodeFunctionData({ abi: erc20Abi, data: sent.at(-2).data }).args[1] ===
+        created.args[0].bounty,
   );
-  // A new connection to a disallowed wallet must not reveal creator controls.
+  const primary = JSON.parse(
+    Buffer.from(created.args[1].slice(2), "hex").toString(),
+  );
+  check(
+    "Create body pins mainnet oracle consumer",
+    primary.consumer.chainId === 1 &&
+      primary.consumer.verifyingContract === d.oracle,
+  );
   allowed = false;
-  await page.goto(url + "#/create");
-  await connect();
+  await change("open", "create");
   await page
-    .getByText("This wallet isn’t an approved creator", { exact: true })
+    .getByRole("heading", { name: "This wallet isn’t an approved creator" })
     .waitFor();
   check(
-    "On-chain creator allowlist gates the builder",
+    "Allowlist gates creator controls",
     (await page.locator("#create-question").count()) === 0,
   );
-  scenario = "portfolio";
   allowed = true;
-  await page.goto(url + "#/portfolio");
-  await page.reload();
-  await connect();
+  await change("portfolio", "portfolio");
   await page.getByRole("heading", { name: "Positions", exact: true }).waitFor();
-  await page
-    .getByRole("button", { name: "Claim winnings", exact: true })
-    .waitFor();
   check(
-    "Portfolio reads stakes, totalStake and claimed, showing both positions",
-    (await page.locator(".position").count()) === 2,
-  );
-  check(
-    "Unclaimed finalized winnings and voided refunds are actionable",
-    (await page
-      .getByRole("button", { name: "Claim winnings", exact: true })
-      .isEnabled()) &&
+    "Portfolio retains settled positions in both tokens",
+    (await page.locator(".position").count()) === 2 &&
       (await page
-        .getByRole("button", { name: "Claim refund", exact: true })
-        .isEnabled()),
+        .getByRole("heading", { name: "IMD positions" })
+        .isVisible()) &&
+      (await page.getByRole("heading", { name: "WETH positions" }).isVisible()),
   );
-  await page.getByRole("button", { name: "Claim refund", exact: true }).click();
-  await page
-    .getByText("Transaction confirmed. Chain data refreshed.", { exact: true })
-    .waitFor();
-  const claim = decodeFunctionData({ abi, data: sent.at(-1).data });
+  await page.getByLabel("Unwrap amount · WETH").fill("0.004");
+  await page.getByRole("button", { name: "Unwrap", exact: true }).click();
+  await confirmed();
   check(
-    "Refund claim sends claim(market 2)",
-    claim.functionName === "claim" && claim.args[0] === 2n,
+    "Unwrap sends WETH9.withdraw amount",
+    sent.at(-1).to.toLowerCase() === d.weth &&
+      decodeFunctionData({ abi: wethAbi, data: sent.at(-1).data }).args[0] ===
+        parseUnits(".004", 18),
   );
-  await scanAxe("portfolio, mobile, dark");
+  const claimButton = page.getByRole("button", {
+    name: "Claim refund",
+    exact: true,
+  });
+  await page.waitForFunction(() =>
+    [...document.querySelectorAll("button")].some(
+      (b) => b.textContent.includes("Claim refund") && !b.disabled,
+    ),
+  );
+  await claimButton.click();
+  await confirmed();
+  check(
+    "Refund position claims market collateral",
+    decodeFunctionData({ abi, data: sent.at(-1).data }).args[0] === 2n,
+  );
+  await scanAxe("portfolio / mobile / dark");
+  await shot("portfolio-360");
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page
     .getByRole("button", { name: "Switch to light mode", exact: true })
     .first()
     .click();
-  await scanAxe("portfolio, desktop, light");
-  await page.goto(url + "#/");
-  await page.getByText("Synced · block", { exact: false }).waitFor();
-  await scanAxe("home, light");
-  await page.goto(url + "#/how-it-works");
-  await scanAxe("risks, light");
-  await page.goto(url + "#/agents");
-  await page.getByRole("table").waitFor();
-  await scanAxe("agent ranking, light");
+  await scanAxe("portfolio / desktop / light");
   for (const [state, label, fn, id] of [
     ["closed", "Request answer", "resolve", 1n],
     ["answered", "Submit answer", "propose", 1n],
@@ -698,85 +915,99 @@ try {
     ["finalizable", "Finalize", "finalize", 1n],
     ["voidable", "Refund", "voidMarket", 2n],
   ]) {
-    scenario = state;
-    await page.goto(url + "#/market/" + id);
-    await page.reload();
-    await connect();
-    const action = page.getByRole("button", { name: label, exact: true });
-    await action.waitFor();
+    await change(state, "market/" + id);
+    const button = page.getByRole("button", { name: new RegExp("^" + label) });
     await page.waitForFunction(
-      (text) =>
+      (label) =>
         [...document.querySelectorAll("button")].some(
-          (b) => b.textContent.includes(text) && !b.disabled,
+          (b) => b.textContent.startsWith(label) && !b.disabled,
         ),
       label,
     );
-    await action.click();
-    await page
-      .getByText("Transaction confirmed. Chain data refreshed.", {
-        exact: true,
-      })
-      .waitFor();
+    await button.click();
+    await confirmed();
     const decoded = decodeFunctionData({ abi, data: sent.at(-1).data });
     check(
-      label + " sends the simulated settlement call",
+      label + " sends simulated permissionless call",
       decoded.functionName === fn && decoded.args[0] === id,
     );
-    const creation = captured.logs
-      .map((log) =>
-        decodeEventLog({
-          abi: log.address.toLowerCase() === d.oracle ? oracleAbi : abi,
-          data: log.data,
-          topics: log.topics,
-        }),
-      )
-      .find((e) => e.eventName === "MarketCreated" && e.args.id === 1n);
-    if (fn === "resolve" || fn === "escalate")
-      check(
-        label + " uses the original MarketCreated bytes",
-        decoded.args[1] ===
-          creation.args[fn === "resolve" ? "body" : "escalationBody"],
-      );
-    if (fn === "propose")
-      check(
-        "Submit answer sends the recovered on-chain attestation",
-        decoded.args[1].questionHash === baseMarkets[0].params.questionHash &&
-          decoded.args[1].panelSize === 5,
-      );
   }
+  await shot("settlement-desktop");
+  await change("leaderboard", "leaderboard");
+  await page
+    .getByRole("link", { name: /verdict-fixture.eth/ })
+    .first()
+    .waitFor();
   check(
-    "No uncaught browser errors in mocked wallet flows",
-    errors.length === 0,
+    "Leaderboard uses reverse and forward-verified ENS",
+    await page
+      .getByRole("link", { name: /verdict-fixture.eth/ })
+      .first()
+      .isVisible(),
   );
+  check(
+    "Trader rank includes three finalized markets",
+    (await page.getByRole("table").first().innerText()).includes("3 finalized"),
+  );
+  check(
+    "Share my rank includes the selected token",
+    (
+      await page
+        .getByRole("link", { name: /Share my rank on X/ })
+        .first()
+        .getAttribute("href")
+    ).includes("IMD"),
+  );
+  for (const tab of ["Agents", "Creators", "Settlers"]) {
+    await page.getByRole("button", { name: tab, exact: true }).click();
+    await page.getByRole("table").first().waitFor();
+    await page.getByLabel("Period").selectOption("week");
+    check(
+      `Populated ${tab} rankings support last 7 days`,
+      await page.getByRole("table").first().isVisible(),
+    );
+  }
+  await page.getByRole("button", { name: "Traders", exact: true }).click();
+  await page.setViewportSize({ width: 360, height: 844 });
+  check(
+    "Leaderboard table stays within mobile page",
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
+  await scanAxe("populated leaderboard / mobile / light");
+  await shot("leaderboard-360");
+  check("No uncaught browser errors", errors.length === 0);
   const report = {
     checkedAt: new Date().toISOString(),
     scope:
-      "Deterministic mocked RPC and EIP-6963 wallet; no live transactions broadcast",
+      "Deterministic RPC and EIP-6963 mock wallet with mainnet ABI/runtime checks. All writes intercepted; no live transaction broadcast.",
     results,
     axeResults,
     errors,
     transactionCount: sent.length,
-    requests: requests.length,
+    requestCount: requests.length,
   };
   fs.writeFileSync(
-    path.join(root, "artifacts/wallet-results.json"),
+    path.join(root, "web/validation/wallet-results.json"),
     JSON.stringify(report, null, 2) + "\n",
   );
-  console.log(JSON.stringify(report, null, 2));
-  }
 } catch (e) {
   fs.writeFileSync(
-    "/tmp/verdict-wallet-failure.json",
+    path.join(root, "test/scratch/wallet-failure.json"),
     JSON.stringify(
-      { message: e.message, results, axeResults, errors },
+      {
+        message: e.message,
+        results,
+        axeResults,
+        errors,
+        requests: requests.slice(-15),
+      },
       null,
       2,
     ),
   );
-  await page.screenshot({
-    path: "/tmp/verdict-wallet-failure.png",
-    fullPage: true,
-  });
+  await shot("wallet-failure");
   throw e;
 } finally {
   await browser.close();

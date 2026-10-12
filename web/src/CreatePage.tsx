@@ -6,45 +6,21 @@ import {
   Time,
   TransactionNotice,
 } from "./components";
-import { clientFor, readMarket } from "./chain";
+import { readMarket } from "./chain";
 import { CHAINS } from "./config";
+import { parseUnits } from "viem";
 import {
   buildMarket,
   expectedBlockAtClose,
   FormError,
   type CreateInput,
+  timeDefaults,
+  evidenceDefaults,
+  createDefaults,
 } from "./create";
-import { errorMessage, outcomeLabels, units } from "./domain";
+import { errorMessage, outcomeLabels, units, minimumBounty } from "./domain";
 import { useData } from "./store";
 import { useWallet } from "./wallet";
-const localDate = (date: Date) =>
-  new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
-function defaults(chainId: number): CreateInput {
-  const start = Date.now() + 86400000;
-  return {
-    question: "",
-    dataChainId: String(chainId),
-    answerType: "bool",
-    fromBlock: "",
-    toBlock: "",
-    panelSize: "5",
-    quorum: "4",
-    evidence: "chain",
-    toleranceBps: "",
-    definitions: "",
-    bounds: "",
-    keys: "",
-    closeAt: localDate(new Date(start)),
-    answerFrom: localDate(new Date(start + 3600000)),
-    answerUntil: localDate(new Date(start + 172800000)),
-    voidAfter: localDate(new Date(start + 259200000)),
-    disputeHours: "24",
-    bounty: "",
-    agentId: "0",
-  };
-}
 export function CreatePage() {
   const { config } = useData(),
     wallet = useWallet();
@@ -118,10 +94,12 @@ function CreatorAccess() {
               {accessError}
             </Empty>
           )}
-          {allowed === undefined ? accessError ? null : (
-            <p className="loading-state" role="status">
-              Checking the on-chain creator allowlist…
-            </p>
+          {allowed === undefined ? (
+            accessError ? null : (
+              <p className="loading-state" role="status">
+                Checking the on-chain creator allowlist…
+              </p>
+            )
           ) : !allowed ? (
             <Empty
               title="This wallet isn’t an approved creator"
@@ -145,56 +123,75 @@ function CreatorAccess() {
 function CreatorForm({ canCreate }: { canCreate: boolean }) {
   const { config, data, now, error: readError } = useData();
   const wallet = useWallet();
-  const [input, setInput] = useState<CreateInput>(() =>
-    defaults(config.chainId),
-  );
+  const [input, setInput] = useState<CreateInput>(() => createDefaults(now));
   const [issue, setIssue] = useState(""),
     [invalid, setInvalid] = useState(""),
     [review, setReview] = useState<ReturnType<typeof buildMarket>>();
   const [expected, setExpected] = useState<bigint>(),
     [estimateError, setEstimateError] = useState("");
+  const [estimateAnchor, setEstimateAnchor] = useState(data!);
+  const [autoWindow, setAutoWindow] = useState(true),
+    [autoBounty, setAutoBounty] = useState(true);
+  let reward = 0n;
+  try {
+    if (/^\d+(\.\d{0,18})?$/.test(input.settlerReward))
+      reward = parseUnits(input.settlerReward, 18);
+  } catch {}
   useEffect(() => {
-    if (data && !input.bounty)
-      setInput((i) => ({ ...i, bounty: units(data.price * 2n) }));
-  }, [data?.price]);
-  useEffect(() => {
-    let live = true;
-    setExpected(undefined);
-    setEstimateError("");
-    const chain = CHAINS[Number(input.dataChainId)];
-    if (!chain) {
-      setEstimateError(
-        "No RPC configured for this data chain. Add it to the chain configuration to estimate the closing block.",
-      );
-      return;
+    if (data && autoBounty) {
+      setInput((i) => ({
+        ...i,
+        bounty: units(minimumBounty(data.price, reward)),
+      }));
+      setReview(undefined);
     }
-    const time = Date.parse(input.closeAt);
-    if (!Number.isFinite(time)) return;
-    void clientFor(chain)
-      .getBlock()
-      .then((block) => {
-        if (live)
-          setExpected(
-            expectedBlockAtClose(
-              block.number,
-              block.timestamp,
-              BigInt(Math.floor(time / 1000)),
-              chain.expectedBlockSeconds,
-            ),
-          );
-      })
-      .catch((e) => {
-        if (live)
-          setEstimateError(
-            `Could not estimate the closing block: ${errorMessage(e)}`,
-          );
-      });
-    return () => {
-      live = false;
-    };
-  }, [input.dataChainId, input.closeAt, data?.block]);
+  }, [data?.price, reward, autoBounty]);
+  useEffect(() => {
+    if (!data) return;
+    const close = Date.parse(input.closeAt + "Z"),
+      target = Date.parse(input.targetAt + "Z");
+    if (!Number.isFinite(close) || !Number.isFinite(target)) return;
+    const closeSeconds = BigInt(Math.floor(close / 1000));
+    setExpected(
+      expectedBlockAtClose(
+        estimateAnchor.block,
+        estimateAnchor.timestamp,
+        closeSeconds,
+        estimateAnchor.averageBlockSeconds,
+      ),
+    );
+    try {
+      if (autoWindow)
+        setInput((i) => ({
+          ...i,
+          ...evidenceDefaults(
+            estimateAnchor.block,
+            estimateAnchor.timestamp,
+            BigInt(Math.floor(target / 1000)),
+            closeSeconds,
+            estimateAnchor.averageBlockSeconds,
+          ),
+        }));
+      setEstimateError("");
+    } catch (e) {
+      setEstimateError(errorMessage(e));
+    }
+  }, [input.targetAt, input.closeAt, estimateAnchor, autoWindow]);
   function update(field: keyof CreateInput, value: string) {
-    setInput((i) => ({ ...i, [field]: value }));
+    if (field === "fromBlock" || field === "toBlock") setAutoWindow(false);
+    if (field === "bounty") setAutoBounty(false);
+    setInput((i) => {
+      const updated = { ...i, [field]: value };
+      if (field === "targetAt") {
+        const target = Date.parse(value + "Z");
+        if (Number.isFinite(target))
+          Object.assign(
+            updated,
+            timeDefaults(BigInt(Math.floor(target / 1000))),
+          );
+      }
+      return updated;
+    });
     setReview(undefined);
     setIssue("");
     setInvalid("");
@@ -232,7 +229,7 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
             "toleranceBps",
           ].includes(name)
             ? { inputMode: "numeric" as const }
-            : name === "bounty"
+            : name === "bounty" || name === "settlerReward"
               ? { inputMode: "decimal" as const }
               : {})}
         />
@@ -253,7 +250,9 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
     setIssue("");
     setInvalid("");
     try {
-      setReview(buildMarket(input, config, data!.price, now));
+      setReview(
+        buildMarket(input, config, data!.price, now, data!.maxSettlerReward),
+      );
       requestAnimationFrame(() =>
         document.getElementById("create-review")?.focus(),
       );
@@ -268,7 +267,13 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
   async function create() {
     if (!review || !canCreate) return;
     try {
-      const fresh = buildMarket(input, config, data!.price, now);
+      const fresh = buildMarket(
+        input,
+        config,
+        data!.price,
+        now,
+        data!.maxSettlerReward,
+      );
       await wallet.send("createMarket", fresh.args, fresh.params.bounty);
       setReview(undefined);
       setIssue("");
@@ -282,6 +287,18 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
       <form onSubmit={preview} className="create-form" noValidate>
         <section className="panel">
           <h2>1. The question</h2>
+          {field(
+            "title",
+            "Market title",
+            "text",
+            "Optional short title, stored in the market URI.",
+          )}
+          {field(
+            "targetAt",
+            "Question time T · UTC",
+            "datetime-local",
+            "Changing T resets the schedule below. Defaults are estimates; review the evidence blocks.",
+          )}
           <label htmlFor="create-question">
             Question
             <textarea
@@ -378,6 +395,16 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
         </section>
         <section className="panel">
           <h2>2. Evidence window</h2>
+          <button
+            type="button"
+            onClick={() => {
+              setAutoWindow(true);
+              setEstimateAnchor(data!);
+              setReview(undefined);
+            }}
+          >
+            Use estimated block defaults
+          </button>
           <label>
             Data chain
             <select
@@ -398,8 +425,10 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
           {expected !== undefined && (
             <p className="small muted">
               Estimated block at betting close: {expected.toLocaleString()}.
-              Estimate uses the data chain’s latest block and configured average
-              block time.
+              Estimate uses the last 100,000 Ethereum blocks:{" "}
+              {estimateAnchor.averageBlockSeconds.toFixed(3)} seconds per block,
+              measured at block {String(estimateAnchor.block)}. Default evidence
+              starts 15 minutes after close and ends at T.
             </p>
           )}
           {warn && (
@@ -428,14 +457,14 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
         <section className="panel">
           <h2>3. Settlement schedule</h2>
           <p className="small muted">
-            Dates and times are in your timezone:{" "}
-            {Intl.DateTimeFormat().resolvedOptions().timeZone}.
+            All inputs are UTC. Betting closes 2 hours before T; answers open 45
+            minutes after T for 3 days; refunds start 2 days later.
           </p>
           <div className="form-grid">
-            {field("closeAt", "Betting closes", "datetime-local")}
-            {field("answerFrom", "Answer window opens", "datetime-local")}
-            {field("answerUntil", "Answer window ends", "datetime-local")}
-            {field("voidAfter", "Void deadline", "datetime-local")}
+            {field("closeAt", "Betting closes · UTC", "datetime-local")}
+            {field("answerFrom", "Answer window opens · UTC", "datetime-local")}
+            {field("answerUntil", "Answer window ends · UTC", "datetime-local")}
+            {field("voidAfter", "Refund deadline · UTC", "datetime-local")}
             {field(
               "disputeHours",
               "Dispute window · hours",
@@ -445,17 +474,34 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
           </div>
         </section>
         <section className="panel">
-          <h2>4. Fund the oracle</h2>
+          <h2>4. Token and IMD bounty</h2>
+          <label>
+            Market token
+            <select
+              value={input.collateralId}
+              onChange={(e) => update("collateralId", e.target.value)}
+            >
+              <option value="0">IMD</option>
+              <option value="1">WETH</option>
+            </select>
+          </label>
+          {field(
+            "settlerReward",
+            "Settler reward · IMD",
+            "text",
+            `Default 0.05 IMD. Contract maximum: ${data ? units(data.maxSettlerReward) : "—"} IMD.`,
+          )}
           <p className="muted">
-            A bounty funds up to two oracle requests. Unspent bounty returns to
-            the creator at settlement.
+            A bounty funds up to two oracle requests and five settler rewards.
+            All bounty amounts are IMD, including in WETH markets. Unspent
+            bounty returns to the creator at settlement.
           </p>
           <div className="form-grid">
             {field(
               "bounty",
-              `Bounty · ${config.testnet ? "test IMD" : "IMD"}`,
+              "Bounty · IMD",
               "text",
-              `Current minimum: ${data ? units(data.price * 2n) : "—"} IMD for two requests.`,
+              `Current minimum: ${data ? units(minimumBounty(data.price, reward)) : "—"} IMD for two requests and five rewards.`,
             )}
             {field(
               "agentId",
@@ -466,7 +512,24 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
           </div>
           <p className="small muted">
             Creating a market commits both question bodies permanently.
-            Settlement fees are 1% creator, 0.5% treasury and 0.5% burned.
+            {data && (
+              <>
+                {" "}
+                Selected token fees:{" "}
+                {data.collaterals[Number(input.collateralId)].creatorFeeBps /
+                  100}
+                % creator,{" "}
+                {data.collaterals[Number(input.collateralId)].treasuryFeeBps /
+                  100}
+                % treasury,{" "}
+                {data.collaterals[Number(input.collateralId)].burnFeeBps / 100}%
+                burned; pool cap{" "}
+                {units(
+                  data.collaterals[Number(input.collateralId)].maxPoolPerMarket,
+                )}{" "}
+                {input.collateralId === "1" ? "WETH" : "IMD"}.
+              </>
+            )}
           </p>
           <p
             className="error"
@@ -478,7 +541,9 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
           <button
             className="primary"
             type="submit"
-            disabled={!canCreate || wallet.pending || data?.paused || !!readError}
+            disabled={
+              !canCreate || wallet.pending || data?.paused || !!readError
+            }
           >
             Review market <span aria-hidden="true">→</span>
           </button>
@@ -529,11 +594,12 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
               <dd>
                 {review.body.panelSize} / {review.body.panelSize * 2}
               </dd>
+              <dt>Market token</dt>
+              <dd>{input.collateralId === "1" ? "WETH" : "IMD"}</dd>
+              <dt>Settler reward</dt>
+              <dd>{units(review.params.settlerReward)} IMD</dd>
               <dt>Bounty</dt>
-              <dd>
-                {units(review.params.bounty)}{" "}
-                {config.testnet ? "test IMD" : "IMD"}
-              </dd>
+              <dd>{units(review.params.bounty)} IMD</dd>
             </dl>
             <details>
               <summary>Primary JSON</summary>
@@ -560,7 +626,9 @@ function CreatorForm({ canCreate }: { canCreate: boolean }) {
             <button
               className="primary"
               onClick={() => void create()}
-              disabled={!canCreate || wallet.pending || !!readError || data?.paused}
+              disabled={
+                !canCreate || wallet.pending || !!readError || data?.paused
+              }
             >
               {wallet.pending
                 ? "Waiting for wallet…"

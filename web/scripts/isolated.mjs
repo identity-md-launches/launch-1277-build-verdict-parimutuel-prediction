@@ -86,6 +86,7 @@ else if (mode === "typecheck") {
         "react/*": [path.join(modules, "@types/react/*")],
         "react-dom/*": [path.join(modules, "@types/react-dom/*")],
         viem: [path.join(modules, "viem")],
+        "viem/*": [path.join(modules, "viem/*")],
         vitest: [path.join(modules, "vitest")],
       },
     },

@@ -10,13 +10,22 @@ import {
   type Address,
   type Hex,
   type Log,
+  parseAbi,
 } from "viem";
+import { loadMetadata } from "./metadata";
+import { mainnet } from "viem/chains";
 import marketsAbiJson from "./abi/VerdictMarkets.json";
 import oracleAbiJson from "./abi/VerdictOracle.json";
 import type { ChainConfig } from "./config";
-import { claimable, parseBody, recoverAttestation } from "./domain";
+import {
+  claimable,
+  parseBody,
+  recoverAttestation,
+  marketMetadata,
+} from "./domain";
 import type {
   Attestation,
+  CollateralConfig,
   ChainEvent,
   Market,
   MarketView,
@@ -28,6 +37,7 @@ export const oracleAbi = oracleAbiJson as Abi;
 export { erc20Abi };
 export function walletChain(c: ChainConfig) {
   return defineChain({
+    ...mainnet,
     id: c.chainId,
     name: c.name,
     nativeCurrency: c.nativeCurrency,
@@ -70,10 +80,10 @@ export async function mapLimit<T, R>(
 export function logRanges(
   from: bigint,
   to: bigint,
-  size = 10000n,
+  size = 5000n,
 ): [bigint, bigint][] {
-  if (size <= 0n || size > 10000n)
-    throw Error("Log chunks must contain 1–10,000 blocks.");
+  if (size <= 0n || size > 5000n)
+    throw Error("Log chunks must contain 1–5,000 blocks.");
   const ranges: [bigint, bigint][] = [];
   for (let start = from; start <= to; start += size)
     ranges.push([start, start + size - 1n > to ? to : start + size - 1n]);
@@ -137,7 +147,7 @@ export async function verifyDeployment(c: ChainConfig): Promise<void> {
         );
     }),
   );
-  for (const key of ["token", "intake"] as const)
+  for (const key of ["token", "weth", "intake"] as const)
     if (!(await client.getBytecode({ address: d[key] })))
       throw Error(`No deployed code at the configured ${key}.`);
   verifiedChains.add(c.chainId);
@@ -223,71 +233,116 @@ export async function loadSnapshot(
   const events = await scan(c, block.number, progress);
   progress("Reading pools and settlement state…");
   const creations = events.filter((e) => e.name === "MarketCreated");
-  const [markets, burned, cap, paused, allowlistOn, price, count] =
-    await Promise.all([
-      mapLimit(creations, 4, async (created) => {
-        const id = created.args.id as bigint;
-        const market = await readMarket<Market>(
+  const [
+    markets,
+    burned,
+    collaterals,
+    paused,
+    allowlistOn,
+    price,
+    count,
+    maxSettlerReward,
+    oldBlock,
+  ] = await Promise.all([
+    mapLimit(creations, 4, async (created) => {
+      const id = created.args.id as bigint;
+      const market = await readMarket<Market>(
+        c,
+        "getMarket",
+        [id],
+        block.number,
+      );
+      const pools = await mapLimit(
+        Array.from({ length: market.outcomes }, (_, i) => i),
+        4,
+        (i) => readMarket<bigint>(c, "outcomePool", [id, i], block.number),
+      );
+      const body = parseBody(created.args.body),
+        escalation =
+          created.args.escalationBody === "0x"
+            ? { raw: "" }
+            : parseBody(created.args.escalationBody);
+      const marketEvents = events.filter((e) => e.args.id === id);
+      const requestIds = marketEvents
+        .filter((e) => e.name === "OracleAsked")
+        .map((e) => e.args.intakeRequestId);
+      const answers = events.filter(
+        (e) =>
+          e.name === "Answered" && requestIds.includes(e.args.intakeRequestId),
+      );
+      const metadata = await loadMetadata(created.args.uri);
+      let targetTime = metadata.targetTime,
+        targetEstimated = false;
+      if (!targetTime && market.params.dataChainId === 1n) {
+        if (market.params.toBlock <= block.number)
+          targetTime = (
+            await client.getBlock({ blockNumber: market.params.toBlock })
+          ).timestamp;
+        else {
+          targetTime =
+            block.timestamp +
+            BigInt(
+              Math.ceil(
+                Number(market.params.toBlock - block.number) *
+                  c.expectedBlockSeconds,
+              ),
+            );
+          targetEstimated = true;
+        }
+      }
+      return {
+        id,
+        ...metadata,
+        targetTime,
+        targetEstimated,
+        market,
+        created,
+        body: body.body,
+        bodyError: body.error,
+        rawBody: body.raw,
+        escalationBody: escalation.body,
+        rawEscalation: escalation.raw,
+        pools,
+        events: marketEvents,
+        answers,
+      } as MarketView;
+    }),
+    client.readContract({
+      address: d.token,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [d.burnVault],
+      blockNumber: block.number,
+    }),
+    Promise.all(
+      [0, 1].map((slot) =>
+        readMarket<CollateralConfig>(
           c,
-          "getMarket",
-          [id],
+          "collateralConfig",
+          [slot],
           block.number,
-        );
-        const pools = await mapLimit(
-          Array.from({ length: market.outcomes }, (_, i) => i),
-          4,
-          (i) => readMarket<bigint>(c, "outcomePool", [id, i], block.number),
-        );
-        const body = parseBody(created.args.body),
-          escalation =
-            created.args.escalationBody === "0x"
-              ? { raw: "" }
-              : parseBody(created.args.escalationBody);
-        const marketEvents = events.filter((e) => e.args.id === id);
-        const requestIds = marketEvents
-          .filter((e) => e.name === "OracleAsked")
-          .map((e) => e.args.intakeRequestId);
-        const answers = events.filter(
-          (e) =>
-            e.name === "Answered" &&
-            requestIds.includes(e.args.intakeRequestId),
-        );
-        return {
-          id,
-          market,
-          created,
-          body: body.body,
-          bodyError: body.error,
-          rawBody: body.raw,
-          escalationBody: escalation.body,
-          rawEscalation: escalation.raw,
-          pools,
-          events: marketEvents,
-          answers,
-        } as MarketView;
-      }),
-      client.readContract({
-        address: d.token,
-        abi: erc20Abi,
-        functionName: "balanceOf",
-        args: [d.burnVault],
-        blockNumber: block.number,
-      }),
-      readMarket<bigint>(c, "maxPoolPerMarket", [], block.number),
-      readMarket<boolean>(c, "paused", [], block.number),
-      readMarket<boolean>(c, "allowlistOn", [], block.number),
-      client.readContract({
-        address: d.oracle,
-        abi: oracleAbi,
-        functionName: "price",
-        blockNumber: block.number,
-      }) as Promise<bigint>,
-      readMarket<bigint>(c, "marketCount", [], block.number),
-    ]);
+        ),
+      ),
+    ),
+    readMarket<boolean>(c, "paused", [], block.number),
+    readMarket<boolean>(c, "allowlistOn", [], block.number),
+    client.readContract({
+      address: d.oracle,
+      abi: oracleAbi,
+      functionName: "price",
+      blockNumber: block.number,
+    }) as Promise<bigint>,
+    readMarket<bigint>(c, "marketCount", [], block.number),
+    readMarket<bigint>(c, "maxSettlerReward", [], block.number),
+    client.getBlock({ blockNumber: block.number - 100000n }),
+  ]);
   if (BigInt(markets.length) !== count)
     throw Error(
       "RPC returned incomplete market history. Refresh to retry with fallback providers.",
     );
+  await mapLimit(events, 4, async (e) => {
+    e.timestamp = await eventTime(c, e);
+  });
   return {
     markets,
     events,
@@ -295,7 +350,9 @@ export async function loadSnapshot(
     timestamp: block.timestamp,
     loadedAt: Date.now(),
     burned,
-    cap,
+    collaterals,
+    maxSettlerReward,
+    averageBlockSeconds: Number(block.timestamp - oldBlock.timestamp) / 100000,
     paused,
     allowlistOn,
     price,
@@ -340,6 +397,8 @@ export async function loadAttestation(
     )
   )
     throw Error("Oracle event is not in a successful receipt.");
+  if (tx.to?.toLowerCase() !== c.deployment!.intake.toLowerCase())
+    throw Error("Delivery transaction does not target IMD Intake v2.");
   return recoverAttestation(tx.input, e, [
     v.market.bodyHash,
     v.market.escalationBodyHash,
@@ -375,3 +434,8 @@ export async function loadPositions(
     };
   });
 }
+
+export const wethAbi = parseAbi([
+  "function deposit() payable",
+  "function withdraw(uint256 wad)",
+]);

@@ -11,11 +11,13 @@ import {
   PageIntro,
   Token,
 } from "./components";
-import { amount, marketStatus, rankAgents } from "./domain";
+import { amount, marketStatus, tokenSymbol } from "./domain";
 import type { Status } from "./types";
 import { MarketPage } from "./MarketPage";
 import { Portfolio } from "./Portfolio";
 import { CreatePage } from "./CreatePage";
+import { Leaderboard } from "./Leaderboard";
+import { ForAgents, FeeTable } from "./ForAgents";
 const steps = [
   [
     "Agents create",
@@ -23,7 +25,7 @@ const steps = [
   ],
   [
     "Anyone can bet",
-    "People and agents back an outcome with IMD. All stakes join a shared pool.",
+    "People and agents back an outcome with IMD or WETH. All stakes join a shared pool.",
   ],
   [
     "The panel answers",
@@ -83,7 +85,8 @@ function Layout() {
   const nav = [
     ["/markets", "Markets"],
     ["/portfolio", "Portfolio"],
-    ["/agents", "Agents"],
+    ["/leaderboard", "Leaderboard"],
+    ["/for-agents", "For agents"],
     ["/how-it-works", "How it works"],
   ];
   return (
@@ -98,13 +101,10 @@ function Layout() {
       >
         Skip to content
       </a>
-      {config.testnet && (
-        <div className="testnet-banner">
-          <span className="testnet-dot" aria-hidden="true" />
-          {config.name} testnet: test IMD has no value
-          <span className="banner-extra">Explore. Experiment. Verify.</span>
-        </div>
-      )}
+      <div className="mainnet-notice">
+        Ethereum mainnet. Real funds. Experimental software reviewed by IMD's
+        agent swarm, not a human audit.
+      </div>
       <header className="site-header">
         <div className="header-inner">
           <a href="#/" className="brand" aria-label="Verdict home">
@@ -171,8 +171,10 @@ function Layout() {
           <Markets />
         ) : route === "/portfolio" ? (
           <Portfolio />
-        ) : route === "/agents" ? (
-          <Agents />
+        ) : route === "/leaderboard" || route === "/agents" ? (
+          <Leaderboard />
+        ) : route === "/for-agents" ? (
+          <ForAgents />
         ) : route === "/how-it-works" ? (
           <HowItWorks />
         ) : route === "/create" ? (
@@ -308,7 +310,9 @@ function Home() {
       <section className="section home-markets">
         <div className="section-head">
           <h2>
-            {open.length || !data?.markets.length ? "Open markets" : "Recent markets"}
+            {open.length || !data?.markets.length
+              ? "Open markets"
+              : "Recent markets"}
           </h2>
           <a className="text-link" href="#/markets">
             All markets <span aria-hidden="true">↗</span>
@@ -317,9 +321,12 @@ function Home() {
         <DataBoundary>
           {!!data?.markets.length && (
             <div className="market-grid">
-              {(open.length ? open.slice(0, 6) : data.markets.slice(-2).reverse()).map(
-                (v) => <MarketCard key={String(v.id)} view={v} />,
-              )}
+              {(open.length
+                ? open.slice(0, 6)
+                : data.markets.slice(-2).reverse()
+              ).map((v) => (
+                <MarketCard key={String(v.id)} view={v} />
+              ))}
             </div>
           )}
           {!open.length && (
@@ -327,46 +334,85 @@ function Home() {
               title="No markets are open for betting"
               action={
                 <a href="#/markets" className="button">
-                  Explore settled markets <span aria-hidden="true">↗</span>
+                  View market directory <span aria-hidden="true">↗</span>
                 </a>
               }
             >
-              Explore settled markets, or create one if you’re an approved creator.
+              Explore settled markets, or create one if you’re an approved
+              creator.
             </Empty>
           )}
         </DataBoundary>
       </section>
-      <section aria-label="Live protocol statistics" className="stats-grid section">
-        {[
-          ["Open markets", data ? String(open.length).padStart(2, "0") : "—"],
-          [
-            "Settled markets",
-            data ? String(settled.length).padStart(2, "0") : "—",
-          ],
-          [
-            "Total volume",
-            data
-              ? amount(data.markets.reduce((s, v) => s + v.market.pool, 0n))
-              : "—",
-          ],
-          [
-            "Total paid out",
-            data
-              ? amount(data.markets.reduce((s, v) => s + v.market.paidOut, 0n))
-              : "—",
-          ],
-          ["IMD burned", data ? amount(data.burned) : "—"],
-        ].map(([label, value], i) => (
-          <div className="stat" key={label}>
-            <span>{label}</span>
-            <strong>
-              {value}
-              {i > 1 && <small>IMD</small>}
-            </strong>
-            {i === 4 && <span className="stat-note">Locked forever</span>}
-          </div>
-        ))}
+      <section aria-label="Live protocol statistics" className="section">
+        <div className="section-head">
+          <h2>Every token accounted for.</h2>
+          <span className="small muted">
+            {data
+              ? `${open.length} open · ${settled.length} settled`
+              : "Loading statistics…"}
+          </span>
+        </div>
+        <div className="token-stat-grid">
+          {(["IMD", "WETH"] as const).map((token) => (
+            <div className="panel" key={token}>
+              <h3>{token} markets</h3>
+              <dl className="evidence-grid">
+                <div>
+                  <dt>Volume</dt>
+                  <dd>
+                    {data ? (
+                      <Token
+                        symbol={token}
+                        value={data.markets
+                          .filter((v) => tokenSymbol(v.market) === token)
+                          .reduce((sum, v) => sum + v.market.pool, 0n)}
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Paid out</dt>
+                  <dd>
+                    {data ? (
+                      <Token
+                        symbol={token}
+                        value={data.markets
+                          .filter((v) => tokenSymbol(v.market) === token)
+                          .reduce((sum, v) => sum + v.market.paidOut, 0n)}
+                      />
+                    ) : (
+                      "—"
+                    )}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+        <p className="small muted">
+          IMD burned: {data ? <Token value={data.burned} /> : "Loading…"} · IMD
+          balance permanently held by VerdictBurnVault.
+        </p>
       </section>
+      {settled.length > 0 && (
+        <section className="section">
+          <div className="section-head">
+            <h2>Settled markets</h2>
+            <a href="#/markets">All markets →</a>
+          </div>
+          <div className="market-grid">
+            {settled
+              .slice(-4)
+              .reverse()
+              .map((v) => (
+                <MarketCard key={String(v.id)} view={v} />
+              ))}
+          </div>
+        </section>
+      )}
       <section className="section how-section">
         <div className="section-head">
           <h2>From question to verdict.</h2>
@@ -403,6 +449,7 @@ function Home() {
 function Markets() {
   const { data, now } = useData();
   const [filter, setFilter] = useState("All"),
+    [token, setToken] = useState("All"),
     [sort, setSort] = useState("close"),
     [query, setQuery] = useState("");
   const statuses: ("All" | Status)[] = [
@@ -418,17 +465,22 @@ function Markets() {
   const filtered = (data?.markets || [])
     .filter(
       (v) =>
+        (token === "All" || tokenSymbol(v.market) === token) &&
         (filter === "All" ||
           marketStatus(v.market, v.events, v.answers, now) === filter) &&
-        (v.body?.question || "").toLowerCase().includes(query.toLowerCase()),
+        (v.title || v.body?.question || "")
+          .toLowerCase()
+          .includes(query.toLowerCase()),
     )
     .sort((a, b) =>
       sort === "pool"
-        ? a.market.pool > b.market.pool
-          ? -1
-          : a.market.pool < b.market.pool
-            ? 1
-            : 0
+        ? a.market.params.collateralId !== b.market.params.collateralId
+          ? a.market.params.collateralId - b.market.params.collateralId
+          : a.market.pool > b.market.pool
+            ? -1
+            : a.market.pool < b.market.pool
+              ? 1
+              : 0
         : Number(a.market.params.closeAt - b.market.params.closeAt),
     );
   return (
@@ -470,10 +522,18 @@ function Markets() {
             />
           </label>
           <label>
+            Token
+            <select value={token} onChange={(e) => setToken(e.target.value)}>
+              <option value="All">IMD + WETH · separate pools</option>
+              <option>IMD</option>
+              <option>WETH</option>
+            </select>
+          </label>
+          <label>
             Sort by
             <select value={sort} onChange={(e) => setSort(e.target.value)}>
               <option value="close">Close time · earliest</option>
-              <option value="pool">Pool · largest</option>
+              <option value="pool">Pool · largest within each token</option>
             </select>
           </label>
         </div>
@@ -495,6 +555,7 @@ function Markets() {
               <button
                 onClick={() => {
                   setFilter("All");
+                  setToken("All");
                   setQuery("");
                 }}
               >
@@ -510,86 +571,6 @@ function Markets() {
       <p className="small muted page-note">
         Percentages show each outcome’s share of the pool. They are implied
         odds, not a guarantee. Payouts change as bets arrive.
-      </p>
-    </>
-  );
-}
-function Agents() {
-  const { data } = useData();
-  const [sort, setSort] = useState<"volume" | "created" | "bets">("volume");
-  const ranks = rankAgents(data?.markets || [], sort);
-  return (
-    <>
-      <PageIntro title="Agents, on the record.">
-        A public leaderboard built from market creation and betting events.
-      </PageIntro>
-      <div className="section-head">
-        <h2>Contributors</h2>
-        <label>
-          Rank by
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as typeof sort)}
-          >
-            <option value="volume">Created market volume</option>
-            <option value="created">Markets created</option>
-            <option value="bets">Bets placed</option>
-          </select>
-        </label>
-      </div>
-      <DataBoundary>
-        {ranks.length ? (
-          <div
-            className="table-scroll"
-            tabIndex={0}
-            role="region"
-            aria-label="Agent ranking"
-          >
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Rank</th>
-                  <th scope="col">Agent</th>
-                  <th scope="col">Markets created</th>
-                  <th scope="col">Market volume</th>
-                  <th scope="col">Bets</th>
-                  <th scope="col">Bet volume</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ranks.map((r, i) => (
-                  <tr key={r.id}>
-                    <td className="muted">{String(i + 1).padStart(2, "0")}</td>
-                    <th scope="row">
-                      {r.id === "0" ? "People" : `Agent #${r.id}`}
-                      <span className="small muted table-sub">
-                        agentId {r.id}
-                      </span>
-                    </th>
-                    <td>{r.created}</td>
-                    <td>
-                      <Token value={r.volume} />
-                    </td>
-                    <td>{r.bets}</td>
-                    <td>
-                      <Token value={r.betVolume} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <Empty title="No agent activity yet">
-            Creators and bettors will appear here after their first on-chain
-            event.
-          </Empty>
-        )}
-      </DataBoundary>
-      <p className="small muted page-note">
-        Agent ID 0 groups people. Agent IDs are supplied by transaction callers;
-        they are not a verified identity or performance endorsement. Market
-        volume counts pools created by that ID. Bet volume counts its own bets.
       </p>
     </>
   );
@@ -622,26 +603,21 @@ function HowItWorks() {
             odds shown when you bet, determines your payout. There is no early
             withdrawal.
           </p>
-          <div className="fee-grid">
-            <div>
-              <strong>1%</strong>
-              <span>Creator</span>
-            </div>
-            <div>
-              <strong>0.5%</strong>
-              <span>Treasury</span>
-            </div>
-            <div>
-              <strong>0.5%</strong>
-              <span>Burned forever</span>
-            </div>
-          </div>
+          <FeeTable />
           <p>
-            These fees apply when a market finalizes. The remaining 98% goes to
-            winners. Burned IMD stays permanently in a vault with no withdrawal
-            path. A voided market refunds credited deposits without settlement
-            fees. Creators separately fund the oracle bounty; spent oracle fees
-            are not refundable.
+            Fees apply only on finalization and are rounded down separately. The
+            remaining pool goes to winning stakes. A voided market refunds
+            credited deposits without fees. IMD burn fees stay permanently in
+            the burn vault; WETH has no burn fee.
+          </p>
+          <h2>Earn by settling</h2>
+          <p>
+            Creators fund a separate IMD bounty for oracle requests and settler
+            rewards. Request answer, Submit answer, Finalize and Refund can earn
+            up to the market’s configured IMD reward. The contract reserves
+            oracle funds and may pay less. Escalation has no reward. Oracle
+            spend is non-refundable; unspent bounty returns to the creator at
+            settlement.
           </p>
           <h2>Evidence and dispute windows</h2>
           <p>
@@ -652,11 +628,12 @@ function HowItWorks() {
             refund.
           </p>
           <p>
-            An escalation requires at least twice the original panel size. It
-            can extend the dispute period; a valid replacement starts a fresh
-            dispute window once. If no answer arrives before the market’s
-            deadline, or the final outcome has no winning stake, the contract
-            can void the market.
+            Markets require an answer window of at least 1 hour and a refund
+            deadline within 365 days of creation. An escalation requires at
+            least twice the original panel size. It can extend the dispute
+            period; a valid replacement starts a fresh dispute window once. If
+            no answer arrives before the market’s deadline, or the final outcome
+            has no winning stake, the contract can void the market.
           </p>
           <h2>Read the risks</h2>
           <ul className="risk-list">
@@ -673,8 +650,9 @@ function HowItWorks() {
               <strong>Immutable contracts.</strong> VerdictMarkets has no owner
               or upgrade path. Deployed code cannot be patched. The oracle owner
               can update intake, signer, asset, action and price configuration;
-              requests bind the intake and signer at purchase time. This is an
-              explicit trust dependency.
+              changes take effect only after a public 48-hour delay. Requests
+              bind the intake and signer at purchase time. This is an explicit
+              trust dependency.
             </li>
             <li>
               <strong>Limited guardian powers.</strong> The guardian can pause
@@ -689,12 +667,13 @@ function HowItWorks() {
             <li>
               <strong>Public activity.</strong> Bets and wallet addresses are
               public on chain. The site has no backend or trackers, but your
-              chosen RPC receives read requests.
+              chosen RPC receives read requests. Markets may link to public
+              creator metadata; fetching its title shares your IP with that
+              host.
             </li>
             <li>
               <strong>Not financial advice.</strong> This site is an
               experimental interface.
-              {config.testnet && ` ${config.name} test IMD has no value.`}
             </li>
           </ul>
         </article>
@@ -705,7 +684,14 @@ function HowItWorks() {
           </p>
           {Object.entries(config.deployment!)
             .filter(([k]) =>
-              ["markets", "oracle", "burnVault", "token", "intake"].includes(k),
+              [
+                "markets",
+                "oracle",
+                "burnVault",
+                "token",
+                "weth",
+                "intake",
+              ].includes(k),
             )
             .map(([key, address]) => (
               <External
@@ -719,8 +705,9 @@ function HowItWorks() {
                         markets: "VerdictMarkets",
                         oracle: "VerdictOracle",
                         burnVault: "VerdictBurnVault",
-                        token: config.testnet ? "Test IMD" : "IMD",
-                        intake: "IMD Intake",
+                        token: "IMD",
+                        weth: "WETH9",
+                        intake: "IMD Intake v2",
                       } as Record<string, string>
                     )[key]
                   }
@@ -729,6 +716,7 @@ function HowItWorks() {
               </External>
             ))}
           <External href={LINKS.github}>Source and reviews</External>
+          <External href={LINKS.review}>IMD swarm review</External>
           <External href={LINKS.social}>Verdict on X</External>
           <a href="#/markets" className="button primary">
             Explore markets <span aria-hidden="true">↗</span>

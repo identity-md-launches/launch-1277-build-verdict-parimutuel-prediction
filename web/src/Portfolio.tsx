@@ -9,10 +9,18 @@ import {
   TransactionNotice,
   TxLink,
 } from "./components";
-import { loadPositions } from "./chain";
-import { errorMessage, marketStatus, outcomeLabels, short } from "./domain";
+import { clientFor, erc20Abi, loadPositions } from "./chain";
+import {
+  errorMessage,
+  marketStatus,
+  outcomeLabels,
+  short,
+  tokenSymbol,
+  units,
+} from "./domain";
 import { useData } from "./store";
 import { useWallet } from "./wallet";
+import { parseUnits } from "viem";
 import type { Position } from "./types";
 export function Portfolio() {
   const wallet = useWallet();
@@ -42,9 +50,7 @@ export function Portfolio() {
       live = false;
     };
   }, [wallet.account, data?.block, config.chainId, revision]);
-  const active = positions.filter((p) => p.total > 0n),
-    total = active.reduce((s, p) => s + p.total, 0n),
-    claimable = active.reduce((s, p) => s + p.claimable, 0n);
+  const active = positions.filter((p) => p.total > 0n);
   const activity =
     data?.events
       .filter(
@@ -91,24 +97,47 @@ export function Portfolio() {
             </Empty>
           ) : (
             <>
-              <div className="portfolio-stats">
-                <div className="stat">
-                  <span>Total staked · all time</span>
-                  <strong>
-                    <Token value={total} />
-                  </strong>
-                </div>
-                <div className="stat">
-                  <span>Claimable now</span>
-                  <strong>
-                    <Token value={claimable} />
-                  </strong>
-                </div>
-                <div className="stat">
-                  <span>Markets held</span>
-                  <strong>{active.length}</strong>
-                </div>
-              </div>
+              <WethBalance />
+              {(["IMD", "WETH"] as const).map((token) => {
+                const list = active.filter(
+                  (p) =>
+                    tokenSymbol(
+                      data!.markets.find((v) => v.id === p.id)!.market,
+                    ) === token,
+                );
+                return (
+                  <section className="section" key={token}>
+                    <h2>{token} positions</h2>
+                    <div className="portfolio-stats">
+                      <div className="stat">
+                        <span>Total staked · all time</span>
+                        <strong>
+                          <Token
+                            symbol={token}
+                            value={list.reduce((sum, p) => sum + p.total, 0n)}
+                          />
+                        </strong>
+                      </div>
+                      <div className="stat">
+                        <span>Claimable · winnings and refunds</span>
+                        <strong>
+                          <Token
+                            symbol={token}
+                            value={list.reduce(
+                              (sum, p) => sum + p.claimable,
+                              0n,
+                            )}
+                          />
+                        </strong>
+                      </div>
+                      <div className="stat">
+                        <span>Markets played</span>
+                        <strong>{list.length}</strong>
+                      </div>
+                    </div>
+                  </section>
+                );
+              })}
               <section className="section">
                 <h2>Positions</h2>
                 {active.length ? (
@@ -120,7 +149,11 @@ export function Portfolio() {
                         <article className="panel position" key={String(p.id)}>
                           <div className="section-head">
                             <a href={`#/market/${p.id}`}>
-                              <h3>{v.body?.question || `Market #${p.id}`}</h3>
+                              <h3>
+                                {v.title ||
+                                  v.body?.question ||
+                                  `Market #${p.id}`}
+                              </h3>
                             </a>
                             <StatusBadge
                               status={marketStatus(
@@ -137,7 +170,10 @@ export function Portfolio() {
                                 stake > 0n && (
                                   <div key={i}>
                                     <span>{labels[i]}</span>
-                                    <Token value={stake} />
+                                    <Token
+                                      value={stake}
+                                      symbol={tokenSymbol(v.market)}
+                                    />
                                   </div>
                                 ),
                             )}
@@ -152,7 +188,10 @@ export function Portfolio() {
                                     : "Winnings available"}
                               </span>
                               <strong>
-                                <Token value={p.claimable} />
+                                <Token
+                                  value={p.claimable}
+                                  symbol={tokenSymbol(v.market)}
+                                />
                               </strong>
                             </div>
                             <ActionButton
@@ -204,7 +243,13 @@ export function Portfolio() {
                             · Block {e.blockNumber.toLocaleString()}
                           </p>
                         </div>
-                        <Token value={e.args.amount} />
+                        <Token
+                          value={e.args.amount}
+                          symbol={tokenSymbol(
+                            data!.markets.find((v) => v.id === e.args.id)!
+                              .market,
+                          )}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -220,5 +265,95 @@ export function Portfolio() {
         </DataBoundary>
       )}
     </>
+  );
+}
+
+function WethBalance() {
+  const wallet = useWallet(),
+    { config, data, error: chainError } = useData();
+  const [balance, setBalance] = useState<bigint>(),
+    [value, setValue] = useState(""),
+    [error, setError] = useState("");
+  useEffect(() => {
+    let live = true;
+    setBalance(undefined);
+    setError("");
+    if (wallet.account)
+      void clientFor(config)
+        .readContract({
+          address: config.deployment!.weth,
+          abi: erc20Abi,
+          functionName: "balanceOf",
+          args: [wallet.account],
+        })
+        .then((b) => {
+          if (live) setBalance(b);
+        })
+        .catch((e) => {
+          if (live) setError(errorMessage(e));
+        });
+    return () => {
+      live = false;
+    };
+  }, [wallet.account, data?.block]);
+  async function unwrap(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    try {
+      if (!/^\d+(\.\d{1,18})?$/.test(value))
+        throw Error("Enter a WETH amount with up to 18 decimals.");
+      const amount = parseUnits(value, 18);
+      if (amount <= 0n || balance === undefined || amount > balance)
+        throw Error("Enter an amount within your WETH balance.");
+      await wallet.send("withdraw", [amount]);
+      setValue("");
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  }
+  return (
+    <section className="panel">
+      <h2>WETH in your wallet</h2>
+      <p>
+        {balance === undefined ? (
+          "Reading WETH balance…"
+        ) : (
+          <Token value={balance} symbol="WETH" />
+        )}
+      </p>
+      <form onSubmit={unwrap} className="unwrap-form">
+        <label htmlFor="unwrap-amount">
+          Unwrap amount · WETH
+          <input
+            id="unwrap-amount"
+            inputMode="decimal"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            aria-invalid={!!error}
+            aria-describedby="unwrap-error"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={balance === undefined || wallet.pending}
+          onClick={() => setValue(units(balance!))}
+        >
+          Use full balance
+        </button>
+        <button
+          type="submit"
+          disabled={wallet.pending || balance === undefined || !!chainError}
+        >
+          Unwrap
+        </button>
+      </form>
+      <p className="small muted">
+        WETH9.withdraw returns the same amount of ETH. You need ETH for gas;
+        stakes inside markets cannot be unwrapped.
+      </p>
+      <p id="unwrap-error" role={error ? "alert" : undefined} className="error">
+        {error}
+      </p>
+    </section>
   );
 }

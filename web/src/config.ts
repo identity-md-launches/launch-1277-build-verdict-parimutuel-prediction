@@ -13,63 +13,55 @@ export interface ChainConfig {
     oracle: Address;
     burnVault: Address;
     token: Address;
+    weth: Address;
     intake: Address;
     codeHashes: Record<"markets" | "oracle" | "burnVault", Hex>;
   };
 }
-// All network-specific facts live here. A new deployment requires only another entry.
-// Ethereum is a data chain only: no Verdict mainnet deployment is configured.
 export const CHAINS: Record<number, ChainConfig> = {
-  11155111: {
-    chainId: 11155111,
-    name: "Sepolia",
-    testnet: true,
+  1: {
+    chainId: 1,
+    name: "Ethereum",
+    testnet: false,
     rpcUrls: [
-      "https://ethereum-sepolia-rpc.publicnode.com",
-      "https://rpc.sepolia.ethpandaops.io",
-      "https://sepolia.rpc.sentio.xyz",
+      "https://mainnet.gateway.tenderly.co",
+      "https://rpc.mevblocker.io",
+      "https://ethereum-rpc.publicnode.com",
     ],
-    explorer: "https://sepolia.etherscan.io",
-    nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+    explorer: "https://etherscan.io",
+    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
     expectedBlockSeconds: 12,
     deployment: {
-      block: 11888875n,
-      markets: "0xc59c442a7a574561962e4687d4f6477ef88ff61f",
-      oracle: "0xf9e8362469be9944e7e79732bcea9bcecb4ae25d",
-      burnVault: "0x7e78b90c257d77863426966ca7c1328e20620eda",
-      token: "0x44a1cd38474fb1748400e7deb5f8d786cce3f89a",
-      intake: "0x1397434cd35e8a9c8ac312a61d3a285eb31dea56",
+      block: 26172752n,
+      markets: "0x279ac25fb2ef2239241c439a007f39c42f99e334",
+      oracle: "0x8ce069975ae8c69bf7cb2bd225aafa43ba307931",
+      burnVault: "0xb1dfe46f912543e366175201edb298263911a1aa",
+      token: "0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7",
+      weth: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      intake: "0xa43e6f75ee006411f79ac1c84120606c2330de82",
+      // Runtime hashes read from the worker's Ethereum RPC; see ABI provenance.
       codeHashes: {
         markets:
-          "0xbdca7d383d8ca5076c7f0fb498fdf911b4dc4f4600db0ce3fe6b8965cb4f5a79",
+          "0x369d282ee60b2e19d138dc7626d5a1450520089e44329d082bdd5a6593a79c5b",
         oracle:
-          "0xf4281aeb0470b395873c171511d96cc99b92a7e2101a539a71e4a2e3f32dfbd8",
+          "0xde70a6c80f1b6378911213a3d0570297a4620c0e8ee9be3451e7eed577ca2355",
         burnVault:
           "0x19735bdf4d52c6f889cfd85f70fad899c9f4372c41ff8aa853bf043831e21b36",
       },
     },
   },
-  1: {
-    chainId: 1,
-    name: "Ethereum",
-    testnet: false,
-    rpcUrls: ["https://ethereum-rpc.publicnode.com", "https://eth.drpc.org"],
-    explorer: "https://etherscan.io",
-    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    expectedBlockSeconds: 12,
-  },
 };
-export const DEPLOYED_CHAINS = Object.values(CHAINS).filter(
-  (c) => c.deployment,
-);
-export const DEFAULT_CHAIN = DEPLOYED_CHAINS[0];
+export const DEPLOYED_CHAINS = [CHAINS[1]];
+export const DEFAULT_CHAIN = CHAINS[1];
 export const LINKS = {
   siteLabel: "verdict",
   site: "https://verdict.sites.imd.fun",
   github:
-    "https://github.com/identity-md-launches/launch-1277-build-verdict-parimutuel-prediction",
+    "https://github.com/identity-md-launches/launch-1346-deploy-repository-s-audited-verdict",
+  sourceCommit: "083060a",
   imd: "https://imd.fun",
   jobs: "https://explorer.imd.fun/jobs/",
+  review: "https://explorer.imd.fun/jobs/8f416162-687e-4cda-b965-c20116b36ff0",
   oracleExplorer: "https://explorer.imd.fun/oracle",
   social: "https://x.com/VerdictIMD",
 };

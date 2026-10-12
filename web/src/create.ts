@@ -1,9 +1,13 @@
 import { isAddress, pad, parseUnits, toHex, type Hex } from "viem";
 import type { ChainConfig } from "./config";
-import { composeBodies } from "./domain";
+import { composeBodies, minimumBounty } from "./domain";
 import type { Body, Params } from "./types";
 export interface CreateInput {
   question: string;
+  title: string;
+  targetAt: string;
+  settlerReward: string;
+  collateralId: string;
   dataChainId: string;
   answerType: "bool" | "uint256" | "address[]" | "bytes32[]";
   fromBlock: string;
@@ -39,6 +43,7 @@ export function buildMarket(
   config: ChainConfig,
   price: bigint,
   now: bigint,
+  maxSettlerReward: bigint,
 ) {
   function integer(
     field: keyof CreateInput,
@@ -57,11 +62,12 @@ export function buildMarket(
     return value;
   }
   function date(field: keyof CreateInput) {
-    const value = Date.parse(input[field]);
+    const value = Date.parse(input[field] + "Z");
     if (!Number.isFinite(value))
-      return fail(field, "Choose a valid local date and time.");
+      return fail(field, "Choose a valid UTC date and time.");
     return BigInt(Math.floor(value / 1000));
   }
+  const targetTime = date("targetAt");
   const question = input.question.trim();
   if (!question)
     fail("question", "Write a precise question for the panel to answer.");
@@ -79,16 +85,39 @@ export function buildMarket(
   if (closeAt <= now) fail("closeAt", "Betting must close in the future.");
   if (answerFrom < closeAt)
     fail("answerFrom", "Open the answer window at or after betting closes.");
-  if (answerUntil <= answerFrom)
-    fail("answerUntil", "End the answer window after it opens.");
+  if (answerUntil - answerFrom < 3600n)
+    fail("answerUntil", "The answer window must last at least 1 hour.");
+  if (voidAfter - now > 365n * 86400n)
+    fail(
+      "voidAfter",
+      "The refund deadline must be within 365 days of creation.",
+    );
+  if (targetTime <= closeAt)
+    fail("targetAt", "The question time must be after betting closes.");
   if (voidAfter <= answerUntil)
     fail("voidAfter", "Set the void deadline after the answer window ends.");
   const disputeWindow = integer("disputeHours", 1, 72) * 3600;
   if (!/^\d+(\.\d{1,18})?$/.test(input.bounty))
     fail("bounty", "Enter a positive IMD amount with up to 18 decimals.");
   const bounty = parseUnits(input.bounty, 18);
-  if (bounty <= 0n || bounty / 2n < price)
-    fail("bounty", "Fund at least two oracle requests at the current price.");
+  if (!/^\d+(\.\d{1,18})?$/.test(input.settlerReward))
+    fail("settlerReward", "Enter an IMD reward with up to 18 decimals.");
+  const settlerReward = parseUnits(input.settlerReward, 18);
+  if (settlerReward > maxSettlerReward)
+    fail(
+      "settlerReward",
+      "The reward exceeds maxSettlerReward from the contract.",
+    );
+  const collateralId = integer("collateralId", 0, 1);
+  if (
+    bounty <= 0n ||
+    bounty >= 2n ** 256n ||
+    bounty < minimumBounty(price, settlerReward)
+  )
+    fail(
+      "bounty",
+      "Fund at least 2 × oracle price + 5 × settler reward in IMD.",
+    );
   if (!/^\d+$/.test(input.agentId))
     fail("agentId", "Enter a nonnegative whole agent ID. Use 0 for a person.");
   const agentId = BigInt(input.agentId);
@@ -195,6 +224,8 @@ export function buildMarket(
     bounds,
     keys,
     bounty,
+    settlerReward,
+    collateralId,
   };
   return {
     body,
@@ -205,7 +236,13 @@ export function buildMarket(
       params,
       toHex(composed.primary),
       toHex(composed.escalation),
-      "",
+      "data:application/json," +
+        encodeURIComponent(
+          JSON.stringify({
+            title: input.title.trim() || question,
+            targetTime: Number(targetTime),
+          }),
+        ),
       agentId,
     ] as const,
   };
@@ -219,4 +256,59 @@ export function expectedBlockAtClose(
   return (
     head + BigInt(Math.max(0, Math.ceil(Number(close - headTime) / seconds)))
   );
+}
+
+export const utcInput = (time: bigint) =>
+  new Date(Number(time) * 1000).toISOString().slice(0, 16);
+export function timeDefaults(target: bigint) {
+  const answerFrom = target + 45n * 60n;
+  const answerUntil = answerFrom + 3n * 86400n;
+  return {
+    targetAt: utcInput(target),
+    closeAt: utcInput(target - 2n * 3600n),
+    answerFrom: utcInput(answerFrom),
+    answerUntil: utcInput(answerUntil),
+    voidAfter: utcInput(answerUntil + 2n * 86400n),
+    disputeHours: "2",
+  };
+}
+export function evidenceDefaults(
+  head: bigint,
+  headTime: bigint,
+  target: bigint,
+  close: bigint,
+  averageSeconds: number,
+) {
+  if (!(averageSeconds > 0) || !Number.isFinite(averageSeconds))
+    throw Error("Average block time is unavailable.");
+  return {
+    fromBlock: String(
+      expectedBlockAtClose(head, headTime, close + 900n, averageSeconds),
+    ),
+    toBlock: String(
+      expectedBlockAtClose(head, headTime, target, averageSeconds),
+    ),
+  };
+}
+export function createDefaults(now: bigint): CreateInput {
+  return {
+    title: "",
+    question: "",
+    dataChainId: "1",
+    answerType: "bool",
+    fromBlock: "",
+    toBlock: "",
+    panelSize: "5",
+    quorum: "4",
+    evidence: "chain",
+    toleranceBps: "",
+    definitions: "",
+    bounds: "",
+    keys: "",
+    ...timeDefaults(now - (now % 60n) + 86400n),
+    bounty: "",
+    settlerReward: "0.05",
+    collateralId: "0",
+    agentId: "0",
+  };
 }

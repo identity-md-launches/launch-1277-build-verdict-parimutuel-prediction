@@ -15,6 +15,8 @@ export interface Params {
   bounds: bigint[];
   keys: Hex[];
   bounty: bigint;
+  settlerReward: bigint;
+  collateralId: number;
 }
 export interface Market {
   params: Params;
@@ -42,6 +44,10 @@ export interface Market {
   primaryRequests: Hex[];
   escalationRequest: Hex;
   escalationAskedAt: bigint;
+  settlerReward: bigint;
+  rewardsPaid: bigint;
+  collateral: Address;
+  bountyToken: Address;
 }
 export interface Body {
   v: number;
@@ -85,6 +91,9 @@ export interface Attestation {
 }
 export interface MarketView {
   id: bigint;
+  title?: string;
+  targetTime?: bigint;
+  targetEstimated?: boolean;
   market: Market;
   created: ChainEvent;
   body?: Body;
@@ -103,7 +112,9 @@ export interface Snapshot {
   timestamp: bigint;
   loadedAt: number;
   burned: bigint;
-  cap: bigint;
+  collaterals: CollateralConfig[];
+  maxSettlerReward: bigint;
+  averageBlockSeconds: number;
   paused: boolean;
   allowlistOn: boolean;
   price: bigint;
@@ -124,3 +135,12 @@ export type Status =
   | "Provisional"
   | "Finalized"
   | "Voided";
+
+export type TokenSymbol = "IMD" | "WETH";
+export interface CollateralConfig {
+  token: Address;
+  creatorFeeBps: number;
+  burnFeeBps: number;
+  treasuryFeeBps: number;
+  maxPoolPerMarket: bigint;
+}

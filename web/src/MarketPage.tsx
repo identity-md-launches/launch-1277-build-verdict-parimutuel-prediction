@@ -19,6 +19,7 @@ import {
   loadAttestation,
   mapLimit,
 } from "./chain";
+import { metadataUrl } from "./metadata";
 import { CHAINS, LINKS } from "./config";
 import {
   amount,
@@ -30,6 +31,10 @@ import {
   panelUUID,
   short,
   units,
+  tokenSymbol,
+  feeSplit,
+  proposalReason,
+  shareUrl,
 } from "./domain";
 import { useData } from "./store";
 import { useWallet } from "./wallet";
@@ -72,6 +77,9 @@ function MarketDetails({ view }: { view: MarketView }) {
   const m = view.market,
     status = marketStatus(m, view.events, view.answers, now),
     labels = outcomeLabels(m.params);
+  const token = tokenSymbol(m),
+    collateral = data?.collaterals[m.params.collateralId],
+    cap = collateral?.maxPoolPerMarket;
   const eventKey = [...view.events, ...view.answers]
     .map((e) => `${e.transactionHash}:${e.logIndex}`)
     .join();
@@ -133,7 +141,7 @@ function MarketDetails({ view }: { view: MarketView }) {
       title,
       time: times[e.transactionHash],
       tx: e.transactionHash,
-      detail: `Block ${e.blockNumber.toLocaleString()}`,
+      detail: `Block ${e.blockNumber.toLocaleString()}${["OracleAsked", "OutcomeProposed", "Finalized", "Voided"].includes(e.name) ? " · Reward paid: " + units(view.events.filter((r) => r.name === "SettlerRewarded" && r.transactionHash === e.transactionHash && Number(r.args.action) === ({ OracleAsked: 0, OutcomeProposed: 1, Finalized: 2, Voided: 3 } as Record<string, number>)[e.name]).reduce((sum, r) => sum + r.args.amount, 0n)) + " IMD" : ""}`,
     });
     const rows: { title: string; time?: bigint; tx?: Hex; detail?: string }[] =
       [
@@ -224,7 +232,16 @@ function MarketDetails({ view }: { view: MarketView }) {
             {view.body?.answerType || "Unknown type"}
           </span>
         </div>
-        <h1>{view.body?.question || `Market #${view.id}`}</h1>
+        <h1>{view.title || view.body?.question || `Market #${view.id}`}</h1>
+        {view.title && <p className="market-question">{view.body?.question}</p>}
+        <External
+          href={shareUrl(
+            view.title || view.body?.question || `Verdict market #${view.id}`,
+            `${LINKS.site}/#/market/${view.id}`,
+          )}
+        >
+          Share on X
+        </External>
         <div className="market-byline">
           <span>
             Created by{" "}
@@ -241,6 +258,42 @@ function MarketDetails({ view }: { view: MarketView }) {
           </span>
         </div>
       </div>
+      <dl className="market-schedule panel">
+        <div>
+          <dt>Question time</dt>
+          <dd>
+            {view.targetTime ? (
+              <>
+                <Time value={view.targetTime} />
+                {view.targetEstimated && (
+                  <span className="small muted">
+                    {" "}
+                    (estimated from evidence end block)
+                  </span>
+                )}
+              </>
+            ) : (
+              <>Evidence ends at block {String(m.params.toBlock)}</>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>Betting closes</dt>
+          <dd>
+            <Time value={m.params.closeAt} />
+          </dd>
+        </div>
+        <div>
+          <dt>
+            {m.disputeEnds > 0n
+              ? "Finalization eligible from"
+              : "Settlement: request an answer from"}
+          </dt>
+          <dd>
+            <Time value={m.disputeEnds || m.params.answerFrom} />
+          </dd>
+        </div>
+      </dl>
       {view.bodyError && (
         <div className="notice error" role="alert">
           {view.bodyError}
@@ -279,17 +332,17 @@ function MarketDetails({ view }: { view: MarketView }) {
           <section className="panel">
             <div className="section-head">
               <h2>The pool</h2>
-              <Token value={m.pool} />
+              <Token value={m.pool} symbol={token} />
             </div>
             <Odds view={view} />
             <div className="cap-line">
               <span>Market capacity</span>
               <span>
-                {amount(m.pool)} / {data ? amount(data.cap) : "—"} IMD
+                {amount(m.pool, 5)} / {cap ? amount(cap) : "—"} {token}
               </span>
             </div>
             <progress
-              value={data?.cap ? Number((m.pool * 10000n) / data.cap) / 100 : 0}
+              value={cap ? Number((m.pool * 10000n) / cap) / 100 : 0}
               max={100}
               aria-label="Total pool against cap"
             />
@@ -333,7 +386,7 @@ function MarketDetails({ view }: { view: MarketView }) {
             </ol>
             <p className="small muted">
               Scheduled deadlines link to the transaction that set them. Times
-              use your timezone; hover for UTC.
+              are UTC first; hover for your local time.
             </p>
           </section>
           <section className="panel" id="oracle-evidence">
@@ -479,6 +532,11 @@ function MarketDetails({ view }: { view: MarketView }) {
           </section>
           <section className="panel">
             <h2>Question specification</h2>
+            {metadataUrl(view.created.args.uri) && (
+              <External href={metadataUrl(view.created.args.uri)!}>
+                Creator metadata
+              </External>
+            )}
             <dl className="evidence-grid">
               <div>
                 <dt>Answer type</dt>
@@ -560,6 +618,51 @@ function MarketDetails({ view }: { view: MarketView }) {
               </dl>
             </details>
           </section>
+          <section className="panel">
+            <h2>IMD bounty ledger</h2>
+            <dl className="evidence-grid">
+              <div>
+                <dt>Funded by creator</dt>
+                <dd>
+                  <Token value={m.params.bounty} />
+                </dd>
+              </div>
+              <div>
+                <dt>Oracle spend</dt>
+                <dd>
+                  <Token value={m.oracleSpend} />
+                </dd>
+              </div>
+              <div>
+                <dt>Settler reward · per action</dt>
+                <dd>
+                  <Token value={m.settlerReward} />
+                </dd>
+              </div>
+              <div>
+                <dt>Rewards paid</dt>
+                <dd>
+                  <Token value={m.rewardsPaid} />
+                </dd>
+              </div>
+              <div>
+                <dt>Returned to creator</dt>
+                <dd>
+                  <Token value={m.returnedBounty} />
+                </dd>
+              </div>
+              <div>
+                <dt>Remaining bounty</dt>
+                <dd>
+                  <Token value={m.bountyRemaining} />
+                </dd>
+              </div>
+            </dl>
+            <p className="small muted">
+              Rewards are paid from the bounty and capped to preserve oracle
+              funds. Gas is paid separately in ETH.
+            </p>
+          </section>
           {final && (
             <section className="panel">
               <h2>Final fee split</h2>
@@ -568,21 +671,29 @@ function MarketDetails({ view }: { view: MarketView }) {
               </p>
               <dl className="fee-grid">
                 <div>
-                  <dt>Creator · 1%</dt>
+                  <dt>
+                    Creator ·{" "}
+                    {collateral ? collateral.creatorFeeBps / 100 : "—"}%
+                  </dt>
                   <dd>
-                    <Token value={final.args.creatorFee} />
+                    <Token value={final.args.creatorFee} symbol={token} />
                   </dd>
                 </div>
                 <div>
-                  <dt>Treasury · 0.5%</dt>
+                  <dt>
+                    Treasury ·{" "}
+                    {collateral ? collateral.treasuryFeeBps / 100 : "—"}%
+                  </dt>
                   <dd>
-                    <Token value={final.args.treasuryFee} />
+                    <Token value={final.args.treasuryFee} symbol={token} />
                   </dd>
                 </div>
                 <div>
-                  <dt>Burned · 0.5%</dt>
+                  <dt>
+                    Burned · {collateral ? collateral.burnFeeBps / 100 : "—"}%
+                  </dt>
                   <dd>
-                    <Token value={final.args.burnFee} />
+                    <Token value={final.args.burnFee} symbol={token} />
                   </dd>
                 </div>
               </dl>
@@ -615,7 +726,7 @@ function MarketDetails({ view }: { view: MarketView }) {
                         </p>
                       </div>
                       <div>
-                        <Token value={e.args.amount} />
+                        <Token value={e.args.amount} symbol={token} />
                         <p>
                           <TxLink hash={e.transactionHash}>
                             {times[e.transactionHash] ? (
@@ -652,6 +763,7 @@ function MarketDetails({ view }: { view: MarketView }) {
               name="resolve"
               args={[view.id, view.created.args.body]}
               label="Request answer"
+              reward={m.settlerReward}
             />
             <ActionButton
               name="escalate"
@@ -662,16 +774,27 @@ function MarketDetails({ view }: { view: MarketView }) {
               name="propose"
               args={a ? [view.id, a] : []}
               label="Submit answer"
+              reward={m.settlerReward}
               unavailable={
                 a
-                  ? undefined
+                  ? proposalReason(m, chosen?.event)
                   : answerLoading
                     ? "Reading the delivered attestation…"
                     : "No verified attestation is available. Inspect oracle evidence."
               }
             />
-            <ActionButton name="finalize" args={[view.id]} label="Finalize" />
-            <ActionButton name="voidMarket" args={[view.id]} label="Refund" />
+            <ActionButton
+              name="finalize"
+              args={[view.id]}
+              label="Finalize"
+              reward={m.settlerReward}
+            />
+            <ActionButton
+              name="voidMarket"
+              args={[view.id]}
+              label="Refund"
+              reward={m.settlerReward}
+            />
             <ActionButton name="claim" args={[view.id]} label="Claim" />
             {proof && (
               <External href={`${LINKS.jobs}${panelUUID(proof.panelJobId)}`}>
@@ -688,6 +811,8 @@ function MarketDetails({ view }: { view: MarketView }) {
 function BetPanel({ view }: { view: MarketView }) {
   const wallet = useWallet();
   const { config, data, now, error } = useData();
+  const token = tokenSymbol(view.market),
+    collateral = data?.collaterals[view.market.params.collateralId];
   const [outcome, setOutcome] = useState(1),
     [value, setValue] = useState(""),
     [balance, setBalance] = useState<bigint>(),
@@ -700,13 +825,13 @@ function BetPanel({ view }: { view: MarketView }) {
     if (wallet.account)
       void Promise.all([
         clientFor(config).readContract({
-          address: config.deployment!.token,
+          address: view.market.collateral,
           abi: erc20Abi,
           functionName: "balanceOf",
           args: [wallet.account],
         }),
         clientFor(config).readContract({
-          address: config.deployment!.token,
+          address: view.market.collateral,
           abi: erc20Abi,
           functionName: "allowance",
           args: [wallet.account, config.deployment!.markets],
@@ -735,18 +860,18 @@ function BetPanel({ view }: { view: MarketView }) {
   const poolAfter = view.market.pool + stake,
     selectedPool = (view.pools[outcome] || 0n) + stake;
   const projected =
-    selectedPool && stake
-      ? (stake *
-          (poolAfter -
-            (poolAfter * 100n) / 10000n -
-            2n * ((poolAfter * 50n) / 10000n))) /
-        selectedPool
+    selectedPool && stake && collateral
+      ? (stake * feeSplit(poolAfter, collateral).payout) / selectedPool
+      : 0n;
+  const shortfall =
+    token === "WETH" && balance !== undefined && stake > balance
+      ? stake - balance
       : 0n;
   const limitError =
-    stake && data && poolAfter > data.cap
+    stake && collateral && poolAfter > collateral.maxPoolPerMarket
       ? "This amount exceeds the remaining pool capacity."
       : balance !== undefined && stake > balance
-        ? `This amount exceeds your ${config.testnet ? "test IMD" : "IMD"} balance.`
+        ? `This amount exceeds your ${token} balance.${shortfall ? " Wrap the ETH shortfall first." : ""}`
         : "";
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -775,8 +900,7 @@ function BetPanel({ view }: { view: MarketView }) {
       {open ? (
         <>
           <p className="small muted">
-            Choose an outcome and back it with{" "}
-            {config.testnet ? "test IMD" : "IMD"}.
+            Choose an outcome and back it with {token}.
           </p>
           <form onSubmit={submit}>
             <fieldset>
@@ -795,9 +919,7 @@ function BetPanel({ view }: { view: MarketView }) {
                 ))}
               </div>
             </fieldset>
-            <label htmlFor="bet-amount">
-              Amount · {config.testnet ? "test IMD" : "IMD"}
-            </label>
+            <label htmlFor="bet-amount">Amount · {token}</label>
             <input
               id="bet-amount"
               inputMode="decimal"
@@ -812,9 +934,12 @@ function BetPanel({ view }: { view: MarketView }) {
               aria-describedby="bet-help bet-error"
             />
             <div className="amount-presets">
-              {["1", "5", "10"].map((n) => (
+              {(token === "WETH"
+                ? ["0.001", "0.01", "0.1"]
+                : ["1", "5", "10"]
+              ).map((n) => (
                 <button type="button" key={n} onClick={() => setValue(n)}>
-                  {n} IMD
+                  {n} {token}
                 </button>
               ))}
             </div>
@@ -822,17 +947,23 @@ function BetPanel({ view }: { view: MarketView }) {
               Balance:{" "}
               {balance === undefined
                 ? "Connect to read"
-                : `${units(balance)} IMD`}
+                : `${units(balance)} ${token}`}
               . Bets cannot be withdrawn.
             </p>
             <div className="bet-estimate">
               <span>If this outcome wins</span>
               <strong>
-                <Token value={projected} />
+                <Token value={projected} symbol={token} />
               </strong>
               <span className="small muted">
-                Estimate at this pool, after 2% fees. Includes your stake; final
-                payout can change.
+                Estimate at this pool, after{" "}
+                {collateral
+                  ? (collateral.creatorFeeBps +
+                      collateral.burnFeeBps +
+                      collateral.treasuryFeeBps) /
+                    100
+                  : "—"}
+                % fees. Includes your stake; final payout can change.
               </span>
             </div>
             <p
@@ -842,10 +973,41 @@ function BetPanel({ view }: { view: MarketView }) {
             >
               {issue || limitError}
             </p>
+            {shortfall > 0n && (
+              <div className="notice">
+                <p>
+                  Wrap exactly {units(shortfall)} ETH to receive{" "}
+                  {units(shortfall)} WETH. Keep ETH for gas.
+                </p>
+                <button
+                  type="button"
+                  disabled={
+                    wallet.pending ||
+                    !!error ||
+                    !!data?.paused ||
+                    !data?.verified
+                  }
+                  onClick={() => {
+                    setIssue("");
+                    void wallet
+                      .send("deposit", [shortfall])
+                      .catch((e) => setIssue(errorMessage(e)));
+                  }}
+                >
+                  Wrap ETH
+                </button>
+              </div>
+            )}
             <button
               className="primary"
               type="submit"
-              disabled={wallet.pending || !!error || !!data?.paused}
+              disabled={
+                wallet.pending ||
+                !!error ||
+                !!data?.paused ||
+                shortfall > 0n ||
+                (!!wallet.account && balance === undefined)
+              }
             >
               {wallet.pending
                 ? "Waiting for wallet…"
@@ -871,7 +1033,7 @@ function BetPanel({ view }: { view: MarketView }) {
           <div className="closed-pool">
             <span className="small muted">Total pool</span>
             <strong>
-              <Token value={view.market.pool} />
+              <Token value={view.market.pool} symbol={token} />
             </strong>
           </div>
           <a href="#/markets" className="button">
@@ -879,6 +1041,7 @@ function BetPanel({ view }: { view: MarketView }) {
           </a>
         </>
       )}
+      <TransactionNotice />
     </section>
   );
 }

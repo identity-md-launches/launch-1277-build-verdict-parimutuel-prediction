@@ -1,10 +1,21 @@
 {
-  "sourceCommit": "3d603d480c490b93edb99cef51cac86692692541",
-  "compiler": "0.8.26",
-  "canonicalization": "Recursive lexicographic object-key ordering, preserved array order, compact JSON, UTF-8, keccak256",
+  "sourceRepository": "https://github.com/identity-md-launches/launch-1346-deploy-repository-s-audited-verdict",
+  "sourceCommit": "083060a",
+  "abiPath": "docs/agents/abi",
+  "chainId": 1,
+  "canonicalization": "Recursive lexicographic object keys, original array order, compact JSON UTF-8, keccak256",
   "contracts": {
-    "VerdictMarkets": { "abiHash": "c943db34490c40d331a4d953b914ea42b36cfd6b7f441db573a71bff64910bc0", "configKey": "markets" },
-    "VerdictOracle": { "abiHash": "93003e764f176f31ae68d07892a13661d043c5cce6cf9d492f647d5ba5ce16fc", "configKey": "oracle" },
-    "VerdictBurnVault": { "abiHash": "518674ab2b227e5f11e9084f615d57663cde47bce1ba168b4c19c7ee22a73d70", "configKey": "burnVault" }
+    "VerdictMarkets": {
+      "configKey": "markets",
+      "abiHash": "0xdad4a35d774af42b96e9b9fee62c96b0389c70eb1e1ff03ceb9fb3576a24db31"
+    },
+    "VerdictOracle": {
+      "configKey": "oracle",
+      "abiHash": "0x93003e764f176f31ae68d07892a13661d043c5cce6cf9d492f647d5ba5ce16fc"
+    },
+    "VerdictBurnVault": {
+      "configKey": "burnVault",
+      "abiHash": "0x518674ab2b227e5f11e9084f615d57663cde47bce1ba168b4c19c7ee22a73d70"
+    }
   }
 }

@@ -19,6 +19,8 @@ import type {
   MarketView,
   Position,
   Status,
+  CollateralConfig,
+  TokenSymbol,
 } from "./types";
 export const completeAbi = parseAbi([
   "function complete(bytes32 requestId, uint8 status, bytes32 resultHash, string uri, bytes args)",
@@ -103,12 +105,16 @@ export function units(value: bigint): string {
   return formatUnits(value, 18);
 }
 export function amount(value: bigint, digits = 3): string {
-  const [whole, fraction] = units(value).split(".");
+  const sign = value < 0n ? "−" : "";
+  const absolute = value < 0n ? -value : value;
+  const [whole, fraction] = units(absolute).split(".");
   const significant = (fraction || "").slice(0, digits).replace(/0+$/, "");
-  if (value > 0n && whole === "0" && !significant)
-    return `<${digits ? "0." + "0".repeat(digits - 1) + "1" : "1"}`;
+  if (absolute > 0n && whole === "0" && !significant)
+    return `${sign}<${digits ? "0." + "0".repeat(digits - 1) + "1" : "1"}`;
   return (
-    BigInt(whole).toLocaleString() + (significant ? "." + significant : "")
+    sign +
+    BigInt(whole).toLocaleString() +
+    (significant ? "." + significant : "")
   );
 }
 export function outcomeLabels(
@@ -141,12 +147,8 @@ export function marketStatus(
   if (m.status === 1) return "Provisional";
   if (now < m.params.closeAt) return "Open";
   const asked = events.filter((e) => e.name === "OracleAsked");
-  if (
-    answers.some((a) =>
-      asked.some((e) => e.args.intakeRequestId === a.args.intakeRequestId),
-    )
-  )
-    return "Answered";
+  const latestPrimary = [...asked].reverse().find(e => !e.args.escalation);
+  if (latestPrimary && answers.some(a => a.args.intakeRequestId === latestPrimary.args.intakeRequestId)) return "Answered";
   if (asked.length) return "Asked";
   return "Closed";
 }
@@ -323,4 +325,92 @@ function explainRevert(name: string): string {
       "The answer does not satisfy this market’s attestation requirements.",
   };
   return reasons[name] || `Contract rejected this action: ${name}.`;
+}
+
+export function tokenSymbol(m: Pick<Market, "params">): TokenSymbol {
+  return m.params.collateralId === 1 ? "WETH" : "IMD";
+}
+export function feeSplit(pool: bigint, c: CollateralConfig) {
+  const creator = (pool * BigInt(c.creatorFeeBps)) / 10000n;
+  const burn = (pool * BigInt(c.burnFeeBps)) / 10000n;
+  const treasury = (pool * BigInt(c.treasuryFeeBps)) / 10000n;
+  return {
+    creator,
+    burn,
+    treasury,
+    total: creator + burn + treasury,
+    payout: pool - creator - burn - treasury,
+  };
+}
+export function minimumBounty(price: bigint, reward: bigint): bigint {
+  return 2n * price + 5n * reward;
+}
+export function utcTime(value: bigint): string {
+  const d = new Date(Number(value) * 1000);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "UTC",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value;
+  return `${get("weekday")} ${get("day")} ${get("month")} ${get("hour")}:${get("minute")} UTC`;
+}
+export function marketMetadata(uri: string): {
+  title?: string;
+  targetTime?: bigint;
+} {
+  // Parse inline metadata as text only. Linked JSON is handled by the bounded metadata reader.
+  try {
+    let raw = uri;
+    if (uri.startsWith("data:application/json;base64,"))
+      raw = new TextDecoder().decode(
+        Uint8Array.from(atob(uri.split(",")[1]), (c) => c.charCodeAt(0)),
+      );
+    else if (uri.startsWith("data:application/json,"))
+      raw = decodeURIComponent(uri.slice(uri.indexOf(",") + 1));
+    const obj = JSON.parse(raw);
+    return {
+      title:
+        typeof (obj.title ?? obj.name) === "string"
+          ? (obj.title ?? obj.name).slice(0, 500)
+          : undefined,
+      targetTime:
+        typeof obj.targetTime === "number" &&
+        Number.isSafeInteger(obj.targetTime) &&
+        obj.targetTime > 0 &&
+        obj.targetTime < 8640000000000
+          ? BigInt(obj.targetTime)
+          : undefined,
+    };
+  } catch {
+    return {
+      title:
+        uri && !/^(https?:|ipfs:|data:)/i.test(uri)
+          ? uri.slice(0, 500)
+          : undefined,
+    };
+  }
+}
+export function proposalReason(
+  m: Market,
+  answer?: ChainEvent,
+): string | undefined {
+  if (!answer)
+    return "No verified attestation is available. Inspect oracle evidence.";
+  const expected =
+    m.status === 1 ? m.escalationRequest : m.primaryRequests[m.asks - 1];
+  if (
+    !expected ||
+    expected.toLowerCase() !== String(answer.args.intakeRequestId).toLowerCase()
+  )
+    return m.status === 1
+      ? "Only this market’s requested escalation can replace the result."
+      : "Only the market’s latest primary ask can be proposed. This answer is superseded.";
+}
+export function shareUrl(text: string, url: string): string {
+  return `https://x.com/intent/tweet?${new URLSearchParams({ text, url })}`;
 }

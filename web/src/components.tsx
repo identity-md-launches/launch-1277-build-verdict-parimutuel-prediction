@@ -9,8 +9,10 @@ import {
   marketStatus,
   outcomeLabels,
   units,
+  tokenSymbol,
+  utcTime,
 } from "./domain";
-import type { MarketView, Status } from "./types";
+import type { MarketView, Status, TokenSymbol } from "./types";
 export function Logo({ className = "" }: { className?: string }) {
   return (
     <svg
@@ -84,25 +86,28 @@ export function TxLink({
 export function Time({ value }: { value: bigint }) {
   const date = new Date(Number(value) * 1000);
   return (
-    <time dateTime={date.toISOString()} title={date.toUTCString()}>
-      {date.toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
+    <time
+      dateTime={date.toISOString()}
+      title={date.toLocaleString(undefined, {
+        dateStyle: "full",
+        timeStyle: "long",
       })}
+    >
+      {utcTime(value)}
     </time>
   );
 }
-export function Token({ value }: { value: bigint }) {
-  const { config } = useData();
+export function Token({
+  value,
+  symbol = "IMD",
+}: {
+  value: bigint;
+  symbol?: TokenSymbol;
+}) {
   return (
-    <span
-      title={`${units(value)} ${config.testnet ? "test IMD" : "IMD"}`}
-      className="number"
-    >
-      {amount(value)} <span className="unit">IMD</span>
+    <span title={`${units(value)} ${symbol}`} className="number">
+      {amount(value, symbol === "WETH" ? 5 : 3)}{" "}
+      <span className="unit">{symbol}</span>
     </span>
   );
 }
@@ -188,7 +193,10 @@ export function Odds({
               <div style={{ width: `${percent || 0}%` }} />
             </div>
             <div className="outcome-foot">
-              <Token value={view.pools[index]} />
+              <Token
+                value={view.pools[index]}
+                symbol={tokenSymbol(view.market)}
+              />
               <span>pool share</span>
             </div>
           </div>
@@ -200,6 +208,8 @@ export function Odds({
 export function MarketCard({ view }: { view: MarketView }) {
   const { now, data } = useData();
   const status = marketStatus(view.market, view.events, view.answers, now);
+  const token = tokenSymbol(view.market),
+    cap = data?.collaterals[view.market.params.collateralId]?.maxPoolPerMarket;
   return (
     <article className="market-card">
       <div className="card-meta">
@@ -208,7 +218,9 @@ export function MarketCard({ view }: { view: MarketView }) {
       </div>
       <h3>
         <a href={`#/market/${view.id}`}>
-          {view.body?.question || `Market #${view.id} · body unavailable`}
+          {view.title ||
+            view.body?.question ||
+            `Market #${view.id} · body unavailable`}
           <span className="card-arrow" aria-hidden="true">
             ↗
           </span>
@@ -217,17 +229,20 @@ export function MarketCard({ view }: { view: MarketView }) {
       <Odds view={view} compact />
       <div className="cap-line">
         <span>
-          <Token value={view.market.pool} /> pooled
+          <Token value={view.market.pool} symbol={token} /> pooled
         </span>
-        <span>Cap {data ? amount(data.cap) : "—"} IMD</span>
+        <span>
+          Cap {cap ? amount(cap) : "—"} {token}
+        </span>
       </div>
       <progress
         aria-label="Total pool against market cap"
         max={100}
-        value={
-          data?.cap ? Number((view.market.pool * 10000n) / data.cap) / 100 : 0
-        }
+        value={cap ? Number((view.market.pool * 10000n) / cap) / 100 : 0}
       />
+      <p className="small muted">
+        Betting closes <Time value={view.market.params.closeAt} />
+      </p>
       <div className="card-bottom">
         <span>
           {status === "Open"
@@ -290,23 +305,28 @@ export function ActionButton({
   args,
   label,
   unavailable,
+  reward,
   className = "",
 }: {
   name: string;
   args: readonly unknown[];
   label: string;
   unavailable?: string;
+  reward?: bigint;
   className?: string;
 }) {
   const { data, error } = useData(),
     wallet = useWallet();
   const [reason, setReason] = useState("Checking contract…"),
-    [checking, setChecking] = useState(true);
+    [checking, setChecking] = useState(true),
+    [passedFor, setPassedFor] = useState("");
   const key = JSON.stringify(args, (_, v) =>
     typeof v === "bigint" ? v.toString() : v,
   );
+  const identity = `${wallet.account}:${name}:${key}:${data?.block}`;
   useEffect(() => {
     let live = true;
+    setPassedFor("");
     if (!wallet.account || unavailable || error || !data?.verified) {
       setReason(
         unavailable ||
@@ -322,9 +342,15 @@ export function ActionButton({
       setChecking(true);
       try {
         await wallet.simulate(name, args);
-        if (live) setReason("");
+        if (live) {
+          setReason("");
+          setPassedFor(identity);
+        }
       } catch (e) {
-        if (live) setReason(errorMessage(e));
+        if (live) {
+          setReason(errorMessage(e));
+          setPassedFor("");
+        }
       } finally {
         if (live) setChecking(false);
       }
@@ -339,19 +365,36 @@ export function ActionButton({
   return (
     <div className={`contract-action ${className}`}>
       <button
-        disabled={checking || !!reason || wallet.pending}
+        disabled={
+          checking ||
+          passedFor !== identity ||
+          !!reason ||
+          wallet.pending ||
+          !!unavailable ||
+          !!error ||
+          !data?.verified
+        }
         onClick={() => {
           void wallet.send(name, args).catch(() => {});
         }}
       >
-        {checking ? "Checking…" : label}
+        <span>
+          {label}
+          {reward !== undefined && (
+            <small className="reward-label">
+              earns up to {units(reward)} IMD
+            </small>
+          )}
+        </span>
         <span aria-hidden="true">↗</span>
       </button>
       <p className="small muted">
-        {reason ||
-          (wallet.pending
-            ? "Waiting for the current transaction."
-            : "Simulation passed. Your wallet will ask you to confirm.")}
+        {checking
+          ? "Checking contract simulation…"
+          : reason ||
+            (wallet.pending
+              ? "Waiting for the current transaction."
+              : "Simulation passed. Your wallet will ask you to confirm.")}
       </p>
     </div>
   );

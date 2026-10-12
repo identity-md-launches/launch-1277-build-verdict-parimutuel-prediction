@@ -1,11 +1,11 @@
 {
-  "checkedAt": "2026-10-11T08:17:09.479Z",
+  "checkedAt": "2026-10-12T04:15:13.308Z",
   "siteLabel": "verdict",
   "buildDirectory": "dist",
-  "exportBytes": 684853,
-  "prospectiveTreeBytesExcludingThisReport": 3924399,
-  "existingGitObjectBytes": 1025699,
-  "conservativeBundleBudgetBytes": 5150098,
+  "exportBytes": 769522,
+  "prospectiveTreeBytesExcludingThisReport": 4297950,
+  "existingGitObjectBytes": 1029432,
+  "conservativeBundleBudgetBytes": 5527382,
   "maximumBundleBytes": 8388608,
   "assertions": [
     "Title/description/OG/favicon present",
@@ -13,23 +13,39 @@
     "No dependency/cache directories or archives",
     "No captured market fixtures in runtime JS",
     "Existing build configuration and dependencies unchanged",
+    "No testnet runtime configuration",
     "Conservative bundle size below 8 MiB"
   ],
   "assets": [
     {
-      "path": "dist/assets/chain-BQwdJvnv.js",
-      "bytes": 256983,
-      "sha256": "4d7f9e0c37fdf2fe47d99423cccf84f8287b2fe42570fb85bd73d85d4999d3d8"
+      "path": "dist/abi/VerdictBurnVault.json",
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
     },
     {
-      "path": "dist/assets/index-BbSaev33.css",
-      "bytes": 33124,
-      "sha256": "6dd7aae50f87425a1325bd56301ffe5a8ee9257ba020fd28cfbf7b9fc5948198"
+      "path": "dist/abi/VerdictMarkets.json",
+      "bytes": 34630,
+      "sha256": "ca04eda035bb722f15bd66137feb310988936d6943de4c748db3c4e99ea2c4e3"
     },
     {
-      "path": "dist/assets/index-ByzN5mJO.js",
-      "bytes": 112933,
-      "sha256": "b03cbf6695e553289cdba617877f7ec9bd8fe03dbde63dc28cdfcfd989cf9657"
+      "path": "dist/abi/VerdictOracle.json",
+      "bytes": 23833,
+      "sha256": "1138604a8eecd4a02ef6e950b4fd768eade367783984b01645ee53d6e0769e5e"
+    },
+    {
+      "path": "dist/assets/chain-PqHG9h82.js",
+      "bytes": 257455,
+      "sha256": "dcd8674600327a8a7bcd087c4b1de54c45cbbe191a73fcaa943a8442cdb53a2d"
+    },
+    {
+      "path": "dist/assets/index-CAgqfU-S.css",
+      "bytes": 34047,
+      "sha256": "5b8333d6eac420ac7b3e32b2f331c7bb162cb8d86d51d720b2b3e4be6d3f27a4"
+    },
+    {
+      "path": "dist/assets/index-DU6emag0.js",
+      "bytes": 137715,
+      "sha256": "712a01af97ae07513352ec0ed960d6e9f120e5b32b4c6f2e21630f01a46fe383"
     },
     {
       "path": "dist/assets/react-DbQ9GvLb.js",
@@ -68,8 +84,8 @@
     },
     {
       "path": "dist/index.html",
-      "bytes": 1354,
-      "sha256": "028a237b6c24e7b1bd7ef3b6985b4409574fba11e27f848fd1c9ec57face618a"
+      "bytes": 1380,
+      "sha256": "048496075e2bf92adcddf28a55a171b06f21e75f36ad705bf0c22f8a24df7cad"
     },
     {
       "path": "dist/social.png",

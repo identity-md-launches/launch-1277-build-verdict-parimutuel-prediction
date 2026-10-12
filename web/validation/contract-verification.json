@@ -1,25 +1,49 @@
 {
-  "checkedAt": "2026-10-11T07:04:57.796Z",
-  "chainId": 11155111,
-  "sourceCommit": "3d603d480c490b93edb99cef51cac86692692541",
-  "results": [
+  "checkedAt": "2026-10-12T04:00:36.723Z",
+  "chainId": 1,
+  "block": "26173856",
+  "sourceCommit": "083060a",
+  "contracts": [
     {
-      "contract": "VerdictMarkets",
-      "abiHash": "c943db34490c40d331a4d953b914ea42b36cfd6b7f441db573a71bff64910bc0",
-      "runtimeCodeHash": "0xbdca7d383d8ca5076c7f0fb498fdf911b4dc4f4600db0ce3fe6b8965cb4f5a79",
-      "compiledRuntimeMatches": true
+      "name": "VerdictMarkets",
+      "address": "0x279ac25fb2ef2239241c439a007f39c42f99e334",
+      "abiHash": "0xdad4a35d774af42b96e9b9fee62c96b0389c70eb1e1ff03ceb9fb3576a24db31",
+      "observedRuntimeHash": "0x369d282ee60b2e19d138dc7626d5a1450520089e44329d082bdd5a6593a79c5b",
+      "runtimeBytes": 17837
     },
     {
-      "contract": "VerdictOracle",
-      "abiHash": "93003e764f176f31ae68d07892a13661d043c5cce6cf9d492f647d5ba5ce16fc",
-      "runtimeCodeHash": "0xf4281aeb0470b395873c171511d96cc99b92a7e2101a539a71e4a2e3f32dfbd8",
-      "compiledRuntimeMatches": true
+      "name": "VerdictOracle",
+      "address": "0x8ce069975ae8c69bf7cb2bd225aafa43ba307931",
+      "abiHash": "0x93003e764f176f31ae68d07892a13661d043c5cce6cf9d492f647d5ba5ce16fc",
+      "observedRuntimeHash": "0xde70a6c80f1b6378911213a3d0570297a4620c0e8ee9be3451e7eed577ca2355",
+      "runtimeBytes": 7720
     },
     {
-      "contract": "VerdictBurnVault",
-      "abiHash": "518674ab2b227e5f11e9084f615d57663cde47bce1ba168b4c19c7ee22a73d70",
-      "runtimeCodeHash": "0x19735bdf4d52c6f889cfd85f70fad899c9f4372c41ff8aa853bf043831e21b36",
-      "compiledRuntimeMatches": true
+      "name": "VerdictBurnVault",
+      "address": "0xb1dfe46f912543e366175201edb298263911a1aa",
+      "abiHash": "0x518674ab2b227e5f11e9084f615d57663cde47bce1ba168b4c19c7ee22a73d70",
+      "observedRuntimeHash": "0x19735bdf4d52c6f889cfd85f70fad899c9f4372c41ff8aa853bf043831e21b36",
+      "runtimeBytes": 16
     }
-  ]
+  ],
+  "collateral": [
+    {
+      "token": "0xD34a99Bc0f67aE1bbd63C660e6d0b0dd03E263B7",
+      "creatorFeeBps": 150,
+      "burnFeeBps": 50,
+      "treasuryFeeBps": 50,
+      "maxPoolPerMarket": "500000000000000000000"
+    },
+    {
+      "token": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      "creatorFeeBps": 150,
+      "burnFeeBps": 0,
+      "treasuryFeeBps": 100,
+      "maxPoolPerMarket": "1000000000000000000"
+    }
+  ],
+  "marketCount": "0",
+  "maxSettlerReward": "250000000000000000",
+  "configDelaySeconds": "172800",
+  "note": "ABIs compared byte-structurally to pinned source exports. Runtime hashes observed from mainnet RPC and checked against config; this does not independently recompile or audit deployed Solidity."
 }

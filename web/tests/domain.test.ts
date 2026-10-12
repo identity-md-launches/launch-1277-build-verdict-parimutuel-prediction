@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   decodeAbiParameters,
+  decodeEventLog,
+  type Abi,
   encodeAbiParameters,
   hexToString,
   keccak256,
@@ -9,6 +11,8 @@ import {
   type Log,
 } from "viem";
 import fixture from "./chain-fixture.json";
+import legacyAbi from "./legacy-markets-abi.json";
+import oracleAbi from "../src/abi/VerdictOracle.json";
 import { DEFAULT_CHAIN } from "../src/config";
 import { decodeLogs, logRanges } from "../src/chain";
 import {
@@ -25,12 +29,47 @@ import {
   recoverAttestation,
 } from "../src/domain";
 import {
-  buildMarket,
+  buildMarket as buildActual,
   expectedBlockAtClose,
   type CreateInput,
 } from "../src/create";
 import type { Market, MarketView } from "../src/types";
-const events = decodeLogs(fixture.logs as unknown as Log[], DEFAULT_CHAIN);
+const buildMarket = (
+  input: CreateInput,
+  config: typeof DEFAULT_CHAIN,
+  price: bigint,
+  now: bigint,
+) =>
+  buildActual(
+    input,
+    config,
+    price,
+    now === 1n ? 1893369600n : now,
+    250000000000000000n,
+  );
+const events = fixture.logs.flatMap((log) => {
+  try {
+    const d = decodeEventLog({
+      abi: (log.address.toLowerCase() ===
+      "0xf9e8362469be9944e7e79732bcea9bcecb4ae25d"
+        ? oracleAbi
+        : legacyAbi) as Abi,
+      data: log.data as Hex,
+      topics: log.topics as [Hex, ...Hex[]],
+    });
+    return [
+      {
+        name: d.eventName!,
+        args: d.args as Record<string, any>,
+        transactionHash: log.transactionHash as Hex,
+        blockNumber: BigInt(log.blockNumber),
+        logIndex: log.logIndex,
+      },
+    ];
+  } catch {
+    return [];
+  }
+});
 const created = events.find(
   (e) => e.name === "MarketCreated" && e.args.id === 1n,
 )!;
@@ -192,14 +231,16 @@ describe("Outcome and lifecycle rules", () => {
       }),
     ).toBe(0n);
   });
-  it("chunks inclusively into at most 10,000 blocks without gaps", () => {
+  it("chunks inclusively into at most 5,000 blocks without gaps", () => {
     expect(logRanges(5n, 20005n)).toEqual([
-      [5n, 10004n],
-      [10005n, 20004n],
+      [5n, 5004n],
+      [5005n, 10004n],
+      [10005n, 15004n],
+      [15005n, 20004n],
       [20005n, 20005n],
     ]);
     expect(logRanges(5n, 4n)).toEqual([]);
-    expect(() => logRanges(1n, 2n, 10001n)).toThrow();
+    expect(() => logRanges(1n, 2n, 5001n)).toThrow();
   });
   it("aggregates caller-provided agent IDs, including people", () => {
     const markets = fixture.markets.map((x, i) => ({
@@ -209,6 +250,10 @@ describe("Outcome and lifecycle rules", () => {
         (e) => e.name === "MarketCreated" && e.args.id === BigInt(x.id),
       )!,
       events: events.filter((e) => e.args.id === BigInt(x.id)),
+      rawBody: "",
+      rawEscalation: "",
+      pools: [],
+      answers: [],
     })) as MarketView[];
     expect(rankAgents(markets, "volume")[0]).toEqual({
       id: "0",
@@ -227,7 +272,9 @@ describe("Creator documents", () => {
     expect(canonical({ z: [{ "2": null, "10": [2, 1] }], a: true })).toBe(
       '{"a":true,"z":[{"10":[2,1],"2":null}]}',
     );
-    expect(questionHash({ ...body, definitions: { "2": "two", "10": "ten" } })).toBe(
+    expect(
+      questionHash({ ...body, definitions: { "2": "two", "10": "ten" } }),
+    ).toBe(
       "0x0a41f72a223cc698a45e850e2ff389ae113890033df5b0fef53320ee31a7f53b",
     );
   });
@@ -255,6 +302,10 @@ describe("Creator documents", () => {
     expect(result.primary).toBe(JSON.stringify(body));
   });
   const input: CreateInput = {
+    title: "Threshold",
+    targetAt: "2030-01-01T02:00",
+    settlerReward: "0.05",
+    collateralId: "0",
     question: "Will the measured value exceed the threshold?",
     dataChainId: String(DEFAULT_CHAIN.chainId),
     answerType: "bool",
@@ -267,12 +318,12 @@ describe("Creator documents", () => {
     definitions: "",
     bounds: "",
     keys: "",
-    closeAt: "2030-01-01T00:00:00Z",
-    answerFrom: "2030-01-02T00:00:00Z",
-    answerUntil: "2030-01-03T00:00:00Z",
-    voidAfter: "2030-01-04T00:00:00Z",
+    closeAt: "2030-01-01T00:00",
+    answerFrom: "2030-01-02T00:00",
+    answerUntil: "2030-01-03T00:00",
+    voidAfter: "2030-01-04T00:00",
     disputeHours: "24",
-    bounty: "1",
+    bounty: "1.25",
     agentId: "0",
   };
   it("builds valid bool, uint and list params; rejects invalid schedules and bounds", () => {
@@ -301,7 +352,7 @@ describe("Creator documents", () => {
         0n,
         1n,
       ),
-    ).toThrow("after it opens");
+    ).toThrow("at least 1 hour");
     expect(() =>
       buildMarket(
         { ...input, answerType: "uint256", bounds: "2,1" },
@@ -320,7 +371,7 @@ describe("Creator documents", () => {
         5n * 10n ** 17n,
         1n,
       ),
-    ).toThrow("two oracle");
+    ).toThrow("2 × oracle");
   });
   it("estimates the evidence chain closing block, rounding conservatively", () => {
     expect(expectedBlockAtClose(1000n, 100n, 125n, 12)).toBe(1003n);

@@ -10,6 +10,7 @@ import {
   createWalletClient,
   custom,
   type Address,
+  type Abi,
   type EIP1193Provider,
   type Hex,
 } from "viem";
@@ -20,7 +21,10 @@ import {
   readMarket,
   verifyDeployment,
   walletChain,
+  wethAbi,
+  oracleAbi,
 } from "./chain";
+import type { Market } from "./types";
 import type { ChainConfig } from "./config";
 import { errorMessage, short } from "./domain";
 type Provider = EIP1193Provider & {
@@ -188,6 +192,8 @@ export function WalletProvider({
       (
         {
           bet: "Bet",
+          deposit: "Wrap ETH",
+          withdraw: "Unwrap WETH",
           createMarket: "Create market",
           resolve: "Request answer",
           escalate: "Escalate",
@@ -206,16 +212,47 @@ export function WalletProvider({
       const client = clientFor(config);
       const d = config.deployment!;
       await verifyDeployment(config);
+      const wrapping = name === "deposit" || name === "withdraw";
+      const target = wrapping ? d.weth : d.markets;
+      const abi: Abi = wrapping ? wethAbi : marketsAbi;
+      const callArgs = name === "deposit" ? [] : args;
+      const value = name === "deposit" ? (args[0] as bigint) : undefined;
+      if (wrapping && (typeof args[0] !== "bigint" || args[0] <= 0n))
+        throw Error("Enter a positive amount.");
+      if (name === "createMarket") {
+        const asset = await client.readContract({
+          address: d.oracle,
+          abi: oracleAbi,
+          functionName: "asset",
+        });
+        if (String(asset).toLowerCase() !== d.token.toLowerCase())
+          throw Error(
+            "The oracle asset has changed. IMD market creation is unavailable.",
+          );
+      }
+      const approvalToken =
+        name === "bet"
+          ? (await readMarket<Market>(config, "getMarket", [args[0]]))
+              .collateral
+          : d.token;
+      if (
+        ![d.token.toLowerCase(), d.weth.toLowerCase()].includes(
+          approvalToken.toLowerCase(),
+        )
+      )
+        throw Error("Unsupported market token.");
+      const symbol =
+        approvalToken.toLowerCase() === d.weth.toLowerCase() ? "WETH" : "IMD";
       if (approvalAmount !== undefined) {
         const [allowance, balance] = await Promise.all([
           client.readContract({
-            address: d.token,
+            address: approvalToken,
             abi: erc20Abi,
             functionName: "allowance",
             args: [account!, d.markets],
           }),
           client.readContract({
-            address: d.token,
+            address: approvalToken,
             abi: erc20Abi,
             functionName: "balanceOf",
             args: [account!],
@@ -223,14 +260,12 @@ export function WalletProvider({
         ]);
         if (balance < approvalAmount)
           throw Error(
-            `Your ${config.testnet ? "test IMD" : "IMD"} balance is too small. Reduce the amount or fund your wallet.`,
+            `Your ${symbol} balance is too small. Reduce the amount or fund your wallet.`,
           );
         if (allowance < approvalAmount) {
-          setMessage(
-            `Approve the exact ${config.testnet ? "test IMD" : "IMD"} amount in your wallet.`,
-          );
+          setMessage(`Approve the exact ${symbol} amount in your wallet.`);
           const approval = await client.simulateContract({
-            address: d.token,
+            address: approvalToken,
             abi: erc20Abi,
             functionName: "approve",
             args: [d.markets, approvalAmount],
@@ -250,10 +285,11 @@ export function WalletProvider({
       }
       setMessage("Simulating the action against the current contract state…");
       const simulation = await client.simulateContract({
-        address: d.markets,
-        abi: marketsAbi,
+        address: target,
+        abi,
         functionName: name,
-        args,
+        args: callArgs,
+        value,
         account: account!,
       });
       await ensureWallet();

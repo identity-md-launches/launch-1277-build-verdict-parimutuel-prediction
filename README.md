@@ -1,12 +1,12 @@
 # Verdict
 
-The Verdict website is a static React / TypeScript application for the live Sepolia contracts. It reads markets, pools, oracle evidence and positions directly from public RPCs. There is no backend, analytics, tracker, remote font dependency or private key. **Sepolia testnet: test IMD has no value.**
+Verdict is a static React / TypeScript interface for the new **Ethereum mainnet** markets. It supports IMD and WETH pools, exact token approvals, ETH wrapping, WETH unwrapping, IMD settler rewards, oracle evidence, creation and claims. It has no backend, analytics or trackers. Brand, logo, local fonts, and the title **Verdict** are preserved.
 
-The requested site label is **`verdict`**, for **https://verdict.sites.imd.fun**. The production export is in [`dist/`](dist/index.html), with source and the pinned npm lockfile in [`web/`](web/package.json). Hosting is performed by the assignment publisher after submission; this job does not publish or broadcast transactions.
+The site label remains **`verdict`**, at **https://verdict.sites.imd.fun**. The finished export is [dist/index.html](dist/index.html); source and the existing pinned lockfile are under [web/](web/package.json). Only website source, tests, export and documentation changed. Solidity, dependencies, manifests/lockfiles and existing build configuration were preserved.
 
-## Install, rebuild and preview the website
+## Install, preview and rebuild
 
-Use Node **22.18+** (revision validated with Node 24.21.0) and npm. The isolated runner installs the exact lockfile into a content-addressed directory under the operating system’s temporary directory. It keeps dependencies and caches out of this repository and leaves the existing Foundry setup untouched.
+Use Node **22.18+** and npm (validated with Node 22.23.3). The isolated runner installs the existing lockfile into a content-addressed temporary directory, outside this repository. Once installed, building, typechecking and unit tests need no network.
 
 ```sh
 node web/scripts/isolated.mjs install
@@ -16,46 +16,69 @@ node web/scripts/isolated.mjs build
 node web/scripts/isolated.mjs preview
 ```
 
-Open the local preview URL printed by Vite. `dev` starts the development server. The production build replaces `dist/`; always rebuild after source changes. An ordinary local frontend workflow also works: `cd web`, `npm ci`, then `npm run build`, `npm run typecheck`, `npm test`, or `npm run preview`. Never include generated `node_modules/`, caches or dependency archives in a submission. The checked-in export needs no npm installation to serve.
+Open the preview URL printed by Vite. `dev` runs the development server. The production build replaces `dist/`, so rebuild after source changes. A standard local workflow also works: `cd web`, `npm ci`, then `npm run build`, `npm run typecheck`, `npm test` or `npm run preview`. Never submit generated dependencies or caches. The checked export can be served directly without Node or a build step.
 
-## Browser and contract checks
+## Validate
 
 ```sh
 node web/scripts/isolated.mjs browser:install
 node web/scripts/isolated.mjs test:browser
 node web/scripts/isolated.mjs test:wallet
-node web/scripts/isolated.mjs test:wallet --revision
 node web/scripts/isolated.mjs verify:contracts
+node web/scripts/check-export.mjs
 ```
 
-The browser scripts serve the actual `dist/` at a temporary `/preview/` subpath, run Chromium, then close both the browser and server. `test:browser` uses live Sepolia RPCs and checks real chain records. `test:wallet` intercepts all external RPC requests and supplies a simulated EIP-6963 wallet; it exercises approval, bet, create, settlement and claim flows **without signing or broadcasting anything**. `test:wallet --revision` adds long list-key review, local-time display, font assertions, access rechecks, automatic refresh with an advanced browser clock, and failed-attestation recovery. A preinstalled browser can be selected with `CHROMIUM_EXECUTABLE=/absolute/path/to/chromium`. `verify:contracts` needs Foundry and network access; its compiler outputs stay in `/tmp`.
+The browser scripts manage a foreground preview under `/preview/`, run Chromium, and close both browser and server. They use the preinstalled IMD Chromium when available, the installed Playwright browser otherwise, or `CHROMIUM_EXECUTABLE` when provided. The public browser check uses live mainnet reads. On this worker it ran with the provided relay:
 
-Revision checks on 2026-10-11 passed: production build, typecheck, 14 domain tests, 28 live browser checks, 37 original simulated-wallet checks and 37 targeted revision checks. Nine automated accessibility scans found no violations in the tested states; all 12 measured text/control contrast pairs passed. The revised phone home screen shows a real market and its View market action at 390×844. All nine reported defects reproduced and were fixed; individual answers are in `.imd-responses.json`, with before/after evidence in `web/validation/revision-before.json` and `web/validation/revision-results.json`. The export is 684,853 bytes; the conservative submission bound is below 5.2 MB (8 MiB limit). Live wallet broadcasts and production hosting were not exercised.
+```sh
+VERDICT_RPC_URL=http://127.0.0.1:42311/rpc/1 node web/scripts/isolated.mjs test:browser
+VERDICT_RPC_URL=http://127.0.0.1:42311/rpc/1 node web/scripts/isolated.mjs verify:contracts
+```
 
-Reports and screenshots are written to `artifacts/` for the assignment’s artifact collector. Compact copies of final JSON reports are retained in `web/validation/`. The consolidated six-domain design review, actual commands, findings, and limitations are in [docs/WEBSITE_VALIDATION.md](docs/WEBSITE_VALIDATION.md). The implemented design system is documented in [DESIGN.md](DESIGN.md).
+That loopback endpoint is only a verification override; it is absent from the production export. The wallet suite intercepts all RPC and wallet writes. It validates wrapping, approvals, bets, creation, settlement, claims, ENS and rankings without signing or broadcasting transactions. `verify:contracts` compares the ABI exports against the pinned source and checks mainnet code hashes, collateral configuration, token decimals, oracle asset/Intake and the 48-hour configuration delay. It does not compile the historical Solidity in this repository.
 
-## Static publication
+Actual results and limits are in [docs/WEBSITE_VALIDATION.md](docs/WEBSITE_VALIDATION.md), with machine-readable records in [web/validation/](web/validation/). Unit tests cover the required question-hash vector, supplied Intake v2 attestation/hash, outcome labels, fee rounding per token, bounty minimum, UTC defaults and win/loss/void leaderboard results. Screenshots are generated in disposable `test/scratch/browser/`; no preview, browser profile or cache is part of the site.
 
-Publish the **contents of `dist/`** under label **`verdict`**. The assignment publisher pins that export and serves it at `verdict.sites.imd.fun`; it does not rebuild the source. No publishing command was run in this assignment. For another static host, upload the same directory unchanged. Vite uses `base: './'`; routes use hashes, so gateway subpaths and static hosts do not need rewrites. All runtime fonts, scripts, styles, favicon and social preview image are local. Open Graph metadata uses the requested canonical site URL.
+## Publish the static export
 
-Before submitting, include the source, `web/package.json`, `web/package-lock.json`, `dist/`, and documentation. Exclude dependencies, generated caches and temporary files. The static application never imports the captured test fixtures or validation reports.
+The assignment publisher pins the contents of **`dist/`** and updates the existing **`verdict`** site after submission. It does not rebuild. No publishing command or on-chain transaction was run here. On another static host, upload the same directory unchanged. `base: './'`, relative assets and hash routes allow hosting at a gateway subpath without server rewrites. Keep the ABI downloads, fonts/licenses, favicon, social image, scripts and styles together.
 
-## Chain configuration and data model
+Include `web/`, its unchanged package manifest/lockfile, `dist/`, `DESIGN.md` and website documentation in the submission. Do not include `node_modules`, caches, npm archives or `test/scratch`. No ignore rules were changed. The export is about 0.77 MB; the conservative complete Git submission estimate is below 5.6 MB against the 8 MiB limit (exact figures are recorded by the export check).
 
-[`web/src/config.ts`](web/src/config.ts) is the only runtime source of chain IDs, deployment addresses and blocks, RPC lists, explorer URLs, wallet parameters, expected block intervals and verified runtime code hashes. Sepolia is the only configured Verdict deployment. Ethereum is available solely as a data chain for questions; there are no invented mainnet Verdict addresses. Add a verified deployment to the configuration to enable its network selector and wallet flow; no application code changes are needed for another deployment of the same contracts.
+## Mainnet deployment and behavior
 
-The ABIs in `web/src/abi/` were compiled from this repository and match the pinned deployment ABI hashes. `provenance.json` records those hashes and the deployment source commit. At runtime the site checks the RPC chain ID and full deployed code hashes before enabling transactions.
+[web/src/config.ts](web/src/config.ts) is the runtime configuration. Ethereum chain **1** is the only configured network. Logs start at block **26,172,752** in inclusive chunks of at most **5,000 blocks**. The ordered fallback is Tenderly, MEV Blocker, then PublicNode, using the URLs from the brief.
 
-- History starts at the configured deploy block in inclusive chunks of at most 10,000 blocks. Publicnode is tried first, then configured fallbacks. A refused block range can be subdivided. Refreshes overlap 24 blocks to replace recent reorged logs; data is kept in memory, with no remote indexer.
-- Every snapshot reads state and pools at the same block as its log scan. Market count is checked against the number of creation events. Public data refreshes every 30 seconds while the tab is visible; manual refresh and post-transaction refresh are also available. Errors retain the last successful snapshot and disable write controls until recovery.
-- Questions and both oracle bodies come from `MarketCreated`, never a metadata API. `OracleAsked` intake IDs associate oracle `Answered` events with their market. Submission decodes `Intake.complete` calldata, decodes its callback arguments, verifies the request IDs and body hash, and compares `keccak256(abi.encode(attestation))` with `attHash` before offering `propose`. A successful refresh retries failed attestation reads while retaining already verified evidence. Recovery errors link to the oracle explorer directory and display the request UUID; panel job links require a recovered panel ID.
-- Every permissionless settlement/claim control is simulated for the connected wallet. Every send is simulated again immediately before the wallet prompt. Bet and bounty approvals are exact, only when the existing allowance is insufficient. All UI bets use `agentId = 0`.
-- “Settled markets” counts Finalized markets. “Total paid out” sums winning payouts, excluding refunds and creator fees. Volume sums credited market pools. Burned IMD is the token balance of the immutable burn vault. Display amounts are shortened with exact values available on hover; uint256 bucket bounds use full 18-decimal units. Oracle figures are shown raw because their units depend on the question.
-- Creator access follows the on-chain allowlist, including its permanent disable switch. The builder validates schedules and outcomes, creates compact primary/escalation JSON, doubles escalation panel and quorum, and hashes recursively sorted question keys, including lexicographic ordering of integer-like definition keys. Routine allowlist rechecks preserve the current wallet’s draft and review; access errors disable creation until retried, and account/deployment changes or actual revocation reset the form. Closing-block warnings are estimates from the configured data chain’s current block and average interval.
+| Contract / token | Mainnet address |
+| --- | --- |
+| VerdictMarkets | `0x279ac25fb2ef2239241c439a007f39c42f99e334` |
+| VerdictOracle | `0x8ce069975ae8c69bf7cb2bd225aafa43ba307931` |
+| VerdictBurnVault | `0xb1dfe46f912543e366175201edb298263911a1aa` |
+| IMD | `0xd34a99bc0f67ae1bbd63c660e6d0b0dd03e263b7` |
+| WETH9 | `0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2` |
+| IMD Intake v2 | `0xa43e6f75ee006411f79ac1c84120606c2330de82` |
 
-No real wallet extension, physical mobile device or human screen reader was used in validation. Native browser 200% zoom and production DNS/IPFS publication were not tested. Public RPC availability and a compatible injected wallet remain external dependencies. Captured records prove the tested examples at their recorded blocks, not future availability or correctness of oracle judgments. See the validation report for exact coverage.
+The ABIs come from [the mainnet repository at 083060a](https://github.com/identity-md-launches/launch-1346-deploy-repository-s-audited-verdict/tree/083060a/docs/agents/abi). `web/src/abi/provenance.json` records canonical hashes. They are also downloadable from the static site. **The unchanged root Solidity and its documentation below describe the earlier release; do not derive mainnet website ABIs from that tree.**
 
-## Original contract documentation
+- A snapshot pins pools/configuration to its scanned block and checks market count against creation logs. Refreshes run every 30 seconds while visible, overlap 24 blocks for recent reorgs, and retry failures. Last-known data stays visible on refresh failure, with writes disabled.
+- Amounts always name their token. Stats, portfolio totals and leaderboard rankings keep IMD and WETH separate. IMD burned is the IMD balance of VerdictBurnVault. Volume is credited pool stake; paid out excludes refunds and creator fees. Fees and caps come from `collateralConfig(slot)`.
+- A bet checks the market's token balance and allowance, approves the exact amount if needed, then sends `bet(id,outcome,amount,0)`. A WETH shortfall offers a separate exact-value `deposit()` transaction first. Portfolio offers partial or full `withdraw(amount)` from the wallet's WETH balance.
+- All financial actions are simulated again immediately before sending. Permissionless action controls also require a successful current wallet/argument/snapshot simulation before enabling. Reward estimates are upper bounds; the chain's actual `SettlerRewarded` amount is displayed in the timeline. Oracle spend, rewards paid, returned bounty and remaining bounty are all IMD.
+- Attestations are recovered from successful Intake v2 transactions and matched to the oracle event, request IDs, body hash and attestation hash. Only the latest primary request can be proposed; replacements must match the market's escalation request. Panel links use the decoded `panelJobId` UUID.
+- UTC is displayed first, e.g. `Thu 15 Oct 22:00 UTC`, with the local date/time on hover. A market's URI supplies its title. Inline JSON, JSON data URIs, plain titles and public HTTPS/IPFS JSON are supported. Linked JSON reads omit credentials/referrers, stop at 64 KiB or 4 seconds, and fall back to the on-chain question on failure. Metadata cannot inject HTML. Question time uses explicit URI `targetTime` when available; otherwise the evidence end block's timestamp (or a labeled estimate for a future block).
+- Creator forms are gated by on-chain access. T defaults to tomorrow, with close T−2h, evidence from close+15m to T, answers T+45m through 3 days later, refunds 2 days after that, and a 2h dispute. Evidence blocks use the measured average over the last 100,000 blocks. Estimates stay stable during review; the reset button recomputes them. Bounty defaults to `2 × price + 5 × reward`, with a 0.05 IMD reward bounded by the on-chain maximum. The review shows exact bodies/hash, token and funding before approval and creation.
+
+## Leaderboard definitions
+
+Traders and Agents rank net results on finalized markets: actual claimed payout, or currently due unclaimed payout, minus all stakes. Voids contribute zero net. At least three finalized markets per token in the chosen period are required. “Win rate” means holding a winning stake divided by finalized markets, even if that market's net result is negative. Markets played includes voids. The seven-day window uses settlement time and includes every stake in each qualifying market.
+
+Agent IDs are unverified event labels; ID 0 conventionally means a person. When a wallet uses multiple IDs, its payout is apportioned to those IDs by winning stake, with integer residue assigned to the final winning ID in stable lexical order. Unique markets are counted once per ID. Creators rank by earned creator fees; creation, bet volume and fees use their own event timestamps for seven-day filtering. Settlers rank IMD rewards and count `SettlerRewarded` events across both collateral types; escalation has no reward event. Zero-amount emitted reward events count. Actions with no emitted reward event are not attributed to a settler.
+
+ENS is reverse-resolved and forward-checked before replacing an address; lookup failures retain the address. Wallet rows link to Etherscan. Rank sharing is a normal X intent link, with no embedded X script. No leaderboard blends token values or assumes an exchange rate.
+
+## Historical contract documentation (unchanged earlier release)
+
+This section describes the historical root contracts, not the mainnet contracts used by the website above.
 
 Verdict is an immutable parimutuel prediction market application for Sepolia (chain **11155111**). Creators fund oracle requests; bettors deposit IMD into outcome buckets; authenticated IdentityMD oracle answers establish a provisional outcome; a dispute window precedes settlement. The deployment set is exactly **VerdictBurnVault → VerdictOracle → VerdictMarkets**. There is no launch token, proxy, upgrade, or separate liquidity pool.
 

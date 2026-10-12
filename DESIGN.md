@@ -2,94 +2,93 @@
 
 ## Overview
 
-Verdict is a public interface for people and agents using on-chain prediction markets. The implementation uses an ink canvas, expanded headings, precise mono labels, quiet structural borders and a green primary action. The home page introduces the product, offers **Explore markets**, and shows open markets (or recent markets when none are open) before protocol statistics. Market pages prioritize the question, outcome pools, betting and verifiable settlement evidence. All displayed market records come from the contracts; unavailable or empty data receives an explicit state.
+Verdict serves people and agents using Ethereum prediction markets. The existing ink, cream and green identity, expanded headings, mono controls, logo and local fonts are retained. The product explanation and **Explore markets** action precede open markets and per-token statistics. Market detail prioritizes the question, schedule, bet controls and inspectable evidence. Missing data is an explicit loading, retry or empty state, never a sample market.
 
-Source of truth: [`web/src/styles.css`](web/src/styles.css), shared components in [`web/src/components.tsx`](web/src/components.tsx), and page composition in [`web/src/App.tsx`](web/src/App.tsx). Dark is the default. A local-storage preference selects light mode; no analytics or remote theme service is used.
+The implementation is in [web/src/styles.css](web/src/styles.css), [shared components](web/src/components.tsx) and [App.tsx](web/src/App.tsx). Dark is the default; light mode is a local preference. The mainnet notice replaces the old banner and stays visible on every route.
 
 ## Colors
 
-Primitive colors are `--ink: #0A0F0D`, `--cream: #F2EFE6`, `--green: #2EE67A`, and `--green-light: #0B8F45`. Components consume the semantic roles below.
+Reuse the existing hex primitives and semantic properties; do not introduce a second color system.
 
 | Role | Dark | Light | Use |
 | --- | --- | --- | --- |
-| `--bg` | ink | cream | Page and field background |
-| `--text` | cream | ink | Main text, logo node, navigation |
-| `--accent` | green | green-light | Primary action, focus, logo branches, pool bars |
-| `--surface` | `#111A15` | `#E9EBE2` | Cards, panels, footer, dialog |
-| `--surface-raised` | `#19251E` | `#DDE3D7` | Selected controls, notices, hover |
-| `--border` | `#34473B` | `#A2B09E` | Noninteractive separators and structure |
-| `--control-border` | `#667F6B` | `#6B7A68` | Button, input, select and radio-choice boundaries |
-| `--muted` | `#A5B6A8` | `#4B6050` | Secondary text and units |
-| `--soft` | `#24372B` | `#D5E3D3` | Testnet banner and result surfaces |
-| `--warning` | `#E7BF77` | `#735017` | Schedule risk and provisional state |
-| `--danger` | `#FFABAA` | `#A32929` | Errors and invalid fields |
-| `--focus` | accent | accent | 2px focus perimeter with 4px offset |
-| `--on-accent` | ink | ink | Text on filled primary actions |
+| `--bg` | `--ink` = `#0A0F0D` | `--cream` = `#F2EFE6` | Page and fields |
+| `--text` | cream | ink | Main text and navigation |
+| `--accent` | `--green` = `#2EE67A` | `--green-light` = `#0B8F45` | Primary action, logo, focus, pool bars |
+| `--surface` | `#111A15` | `#E9EBE2` | Cards, panels, notice, footer |
+| `--surface-raised` | `#19251E` | `#DDE3D7` | Selected/hover states |
+| `--border` | `#34473B` | `#A2B09E` | Structural separators |
+| `--control-border` | `#667F6B` | `#6B7A68` | Interactive boundaries |
+| `--muted` | `#A5B6A8` | `#4B6050` | Secondary copy and units |
+| `--soft` | `#24372B` | `#D5E3D3` | Result surfaces |
+| `--warning` | `#E7BF77` | `#735017` | Schedule/provisional notices |
+| `--danger` | `#FFABAA` | `#A32929` | Errors |
+| `--focus` | accent | accent | 2px focus outline, 4px offset |
+| `--on-accent` | ink | ink | Text on green buttons |
 
-Measured rendered text contrast: body 16.802:1 in both themes; muted copy on a panel 8.336:1 dark / 5.649:1 light; primary action 11.698:1 dark / 4.626:1 light. The light accent heading is 3.632:1 and is reserved for large type. Small ordinary links use the text color. Statuses always include a written label; color and dots supplement it. Detailed measurements are retained in the browser report.
+Rendered Chromium measurements: body/page 16.802:1 in both themes; muted/page 9.067:1 dark and 5.914:1 light; primary button text/fill 11.698:1 dark and 4.626:1 light; mainnet notice text/surface 15.447:1 dark and 16.049:1 light. Exact pairs and checks are in [the browser report](web/validation/browser-results.json). Written status labels supplement every status color.
 
 ## Typography
 
-All three webfont faces are self-hosted in `web/public/fonts/` and copied to `dist/fonts/`, with their OFL licenses. The rendered browser check confirmed they loaded.
+The three existing local font files and OFL licenses remain under `web/public/fonts/` and are included in `dist/fonts/`:
 
-- **Archivo 800, 125% width** (`archivo-expanded-800.woff2`): headings and wordmark. CSS uses `font-weight: 800` and `font-stretch: 125%`; the font was obtained at those axes. Fallback: Arial, sans-serif.
-- **IBM Plex Mono 400 / 500**: labels, controls, amounts, times, statuses, code and tables. Homepage totals, portfolio amounts and fee percentages use weight 500 with normal stretch and tracking. Fallback: monospace. Numeric data uses `font-variant-numeric: tabular-nums`.
-- **Arial / Helvetica / sans-serif**: explanatory paragraphs and long risk text.
+- Archivo 800 at 125% width (`archivo-expanded-800.woff2`) for headings and wordmark; Arial/sans-serif fallback.
+- IBM Plex Mono 400 and 500 for controls, labels, token amounts, times, code and tables; monospace fallback.
+- Arial / Helvetica / sans-serif for explanatory copy.
 
-The six-size scale in CSS is 13, 16, 20, 28, 40 and 64px (`--s-caption`, `--s-body`, `--s-subhead`, `--s-heading`, `--s-title`, `--s-display`). The desktop home heading is 64px; it becomes 40px at 1100px and 28px at 680px. Ordinary page headings use 40px, then 28px on mobile. Long market questions use 28px desktop / 20px mobile. Panel headings use 20px; captions and dense labels use 13px. All editable fields use 16px.
+The six CSS sizes are **13, 16, 20, 28, 40 and 64px** (`--s-caption` through `--s-display`). Desktop hero uses 64px, then 40px at 1100px and 28px at 680px. Page titles become 28px on mobile; long market headings use 28px/20px. Inputs stay 16px. Body line height is 1.6; multi-line market text is 1.4–1.6; the short hero is 1.08–1.12. Headings balance; body text wraps naturally; addresses and questions can break anywhere. Guide text has a 72ch maximum measure.
 
-Body line height is 1.6, multi-line card questions 1.45–1.6, and market headings 1.4–1.5. The short hero is 1.08–1.12. Headings use balanced wrapping; full questions use pretty wrapping and `overflow-wrap:anywhere` so on-chain addresses remain available. Long-form content is capped at 72ch. Exact token amounts are available via native hover titles; times show the viewer’s local timezone with UTC on hover. Raw oracle figures retain their original units.
+Amounts use tabular numerals, explicit IMD/WETH units, and an exact hover value. Negative fractional results retain a minus sign. Display precision is three decimals for IMD and five for WETH; values below that precision are marked. UTC comes first (`Thu 15 Oct 22:00 UTC`), with local time in the native tooltip and a dotted underline. Date inputs retain native controls but are labeled and parsed as UTC. Raw oracle figures identify themselves as raw rather than claiming a token unit.
 
 ## Layout
 
-The common `.container` and header cap at 1280px, including 40px inline padding. Recurrent spacing is based on 4px increments: controls use 8–16px internal gaps, panels 24–28px padding, sections 44–64px separation. Components wrap content rather than clipping questions or identifiers.
+The common container and header cap at 1280px with 40px inline padding. Spacing follows the established 4px increments: controls use 8–16px gaps, panels 24–28px padding, and sections 44–64px separation.
 
-- Above 1100px: two-column home hero, five-column statistics, two-column market cards, and a 340px market sidebar.
-- At 1100px: container padding becomes 28px and the market sidebar becomes 300px.
-- At 900px: navigation becomes a disclosed menu, stats use three columns, the market sidebar becomes a pair of panels above the main details, and the creator form becomes one column.
-- At 680px: 20px page margins, single-column cards, two-column stats with a full-width burn row, a stacked five-step explanation, and a compact hero without its decorative diagram. Hero padding is 24px above / 16px below, with 12px paragraph margins. The first market section has no added top margin; its heading and directory link share a row when space permits. The betting panel appears before market details; permissionless settlement controls follow the details. The theme action remains available inside mobile navigation.
-- At 370px: margins become 16px and hero actions use narrower spacing; the heading remains 28px.
+- Desktop: two-column hero/cards; three-part market schedule; separate IMD and WETH statistic cards; market and guide sidebars; two-column creator form/review.
+- At 1100px: 28px container padding, tighter header gaps and a 300px market sidebar.
+- At 900px: disclosed navigation, creator form in one column, market sidebar panels above details.
+- At 680px: 20px margins; stacked cards, token statistics and schedule; compact hero without the decorative diagram; bet panel before details; settlement controls after details. Mobile theme switching lives in navigation.
+- At 370px: 16px margins and narrower control padding.
 
-The first screen at 390×844 contains the brand, explicit testnet banner, product explanation, Explore markets action, and the first recent market’s complete question, pools and View market action (ending at y=830 in the tested Sepolia state). Browser checks covered home reflow at 320, 360, 390, 820 and 1440px; market, creator and risk flows were also inspected at 390px. List-market review keys use the existing `.mono.outcome-label` styles to wrap every character; no document overflow occurred at 360, 390 or 1440px. Tables use a labeled, keyboard-focusable horizontal scroll region. JSON disclosures preserve all content, wrap long values, and provide keyboard focus for scrolling. Native 200% browser zoom and physical devices were not tested.
+The guide content and sidebar have `min-width: 0` so fee tables scroll inside their own region without widening the page. Tables use a labeled, keyboard-focusable horizontal scroll container; long JSON and identifiers remain available through wrapping and native disclosures. The WETH unwrap form wraps into a full-width field followed by actions on phones.
+
+Rendered checks cover home at 320, 360, 390, 768, 1024 and 1440px; every main route at 360, 1024 and 1440px; populated market, creator, portfolio and leaderboard flows at 360px. The 390×844 first screen visibly contains the brand, mainnet notice, product description and Explore markets action. Native browser zoom, physical devices and translated/RTL layouts were not tested.
 
 ## Elevation & depth
 
-Most structure is flat: one-pixel borders separate panels, cards and tables. Tonal surfaces distinguish notices and selected controls. The wallet account menu uses a restrained `0 16px 48px #0004` shadow. The native wallet dialog uses a dark translucent backdrop with 4px blur. The home’s concentric diagram is decorative, static, and hidden from assistive technology; it is not a live market chart.
+Structure is primarily flat, using one-pixel borders and tonal surfaces. The wallet account menu retains `0 16px 48px #0004`; the native wallet dialog has a translucent backdrop with 4px blur. The concentric hero diagram is static, decorative and hidden from assistive technology.
 
 ## Shapes
 
-Buttons use 5px radii; inputs, badges and disclosures use 4px; section containers use 6px; cards and panels use 7px; the hero diagram uses 8px; the wallet dialog uses 12px. Outcome bars are 5px high, with 2px radii. Circular nodes and step numbers share the logo’s geometry. The `Logo` component preserves the exact supplied 240×240 viewBox, rotated rounded rectangles and three circles. The favicon uses the same mark on ink.
+Buttons use 5px radii; inputs and badges 4px; section containers 6px; cards/panels 7px; hero diagram 8px; wallet dialog 12px. Outcome bars are 5px high with 2px radii. The existing `Logo` SVG retains its 240×240 viewBox, rotated rounded bars and circular nodes. Favicon and social image are unchanged.
 
 ## Components
 
-| Component or pattern | Source | Behavior |
+| Component / pattern | Source | Reuse and states |
 | --- | --- | --- |
-| `Logo` / `.brand` | `components.tsx`, `App.tsx` | Theme-aware mark and VERDICT wordmark; home link has an accessible name |
-| Buttons / `.primary` / `.text-link` | `styles.css` | Filled primary emphasis, bordered secondary actions, navigation links; 44px controls; visible keyboard focus |
-| `MarketCard` / `Odds` | `components.tsx` | Full on-chain question, textual status, per-outcome pool shares, capacity and deadline; percentages are not guaranteed payouts |
-| `StatusBadge` | `components.tsx` | Seven explicit lifecycle labels; text makes state understandable without color |
-| `DataBoundary` / `Empty` | `components.tsx` | Loading, RPC failure/retry and contextual empty-state actions |
-| `ActionButton` | `components.tsx` | Simulates for the wallet before enabling; explains rejection; simulates again before sending; refreshes eligibility every 15 seconds |
-| `WalletButton` / wallet dialog | `wallet.tsx` | EIP-6963 choices; native modal keyboard handling, Escape close and focus return; no wallet secrets stored |
-| `BetPanel` | `MarketPage.tsx` | Radio outcomes, exact decimal amount, presets, balance, cap checks, estimate and approval/bet progress |
-| Timeline / evidence disclosures | `MarketPage.tsx` | Transaction links, local time/UTC hover, authenticated evidence, raw JSON and hashes; failures show the oracle explorer directory and request UUID. Refresh retries failures and retains verified answers; job links use only recovered panel IDs |
-| Creator form / review | `CreatePage.tsx` | On-chain access gate, labeled fields, focused validation errors, schedule warning, wrapping outcome keys, local review time with UTC hover, immutable JSON/hash preview and bounty approval. Routine access checks preserve the draft; account/deployment changes or actual revocation reset it. An access-read error keeps the draft visible and disables creation until retry succeeds |
-| Portfolio position / activity | `Portfolio.tsx` | Credited stakes, exact claim calculation, refunds and transaction history; claimed positions remain visible |
-| Agent table | `App.tsx` | Sortable aggregation with explicit column/row headers; agent 0 is people; horizontal scrolling on small screens |
+| `PageIntro`, `Empty`, `DataBoundary` | `components.tsx` | Page hierarchy; contextual empty action; loading and RPC retry |
+| `Logo`, navigation, `.mainnet-notice` | `components.tsx`, `App.tsx` | Brand and persistent network context; native links, mobile menu, skip link |
+| `Token`, `Time` | `components.tsx` | Explicit token and UTC/local display; use `symbol` for market collateral, default IMD only for bounty amounts |
+| `MarketCard`, `Odds`, `StatusBadge` | `components.tsx` | URI title/question fallback, textual lifecycle, token pools, cap and close; odds represent pool share |
+| `ActionButton` | `components.tsx` | Enables only after simulation for current account/arguments/snapshot; adjacent reason; optional IMD reward; rechecks every 15s and before send |
+| `WalletButton` and native dialog | `wallet.tsx` | EIP-6963 provider choices, chain switching, progress, rejection, Escape and focus return |
+| Bet panel and schedule | `MarketPage.tsx` | Radio outcomes, token presets, exact approval, balance/cap checks, fee-based estimate, shortfall wrapping, UTC dates |
+| Timeline and bounty ledger | `MarketPage.tsx` | Transaction links, actual IMD rewards, oracle spend and returned bounty; decoded evidence and raw disclosures |
+| Creator form/review | `CreatePage.tsx` | Allowlist gate; focused errors; UTC T and defaults; token/reward/bounty; stable review estimates and explicit reset |
+| Positions, history, WETH form | `Portfolio.tsx` | Separate token totals, retained claimed positions, claim/refund, partial/full unwrap |
+| Leaderboard groups | `Leaderboard.tsx` | Four native category buttons, period select, independent token tables, ENS/address links and share intent |
+| `FeeTable`, agent guide | `ForAgents.tsx` | On-chain fee/cap table, address links and local ABI downloads |
 
-Interactions use native buttons, links, selects, details, radio inputs and a dialog. The skip link focuses the main region. Decorative arrows and the hero diagram are hidden from assistive technology. Errors and transaction progress use alert/status semantics. Transaction notices name their action and remain until dismissed after pending work finishes. Hover, focus, disabled, loading, empty, disconnected, rejected and confirmed states are implemented.
+Native buttons, links, selects, radio controls, details and dialog supply keyboard behavior. Inputs have persistent labels; validation focuses the failing field and uses alert text. Progress is a status region; transaction notices remain until dismissed. No external X widget is loaded: sharing uses normal links.
 
-Motion is limited to a 120ms press transform and the loading indicator, both inside `prefers-reduced-motion: no-preference`. Theme switching has no color transition, so it snaps rather than animating the whole interface. There is no autoplay or entrance animation.
+Motion is limited to 120ms press transforms and the loading indicator, gated by `prefers-reduced-motion: no-preference`. No autoplay or entrance animation is present. Theme switching changes colors immediately rather than transitioning the page.
 
-## Do’s and don’ts
+## Do's and don'ts
 
-- Start a new page with `PageIntro` inside the common container. Use `DataBoundary` around data-dependent content and native links for route changes.
-- Keep chain-specific facts in `config.ts`; derive user-visible state from the chain reader and domain helpers. Preserve hash routing and relative runtime assets.
-- Use the existing text and control roles. Keep control boundaries distinct from quiet structural separators, and preserve the light-mode ink text on green buttons.
-- Show full questions and hashes through wrapping/disclosure. Do not replace missing RPC data with example markets or fabricated statistics.
-- Reuse `ActionButton` for settlement and `wallet.send` for wallet mutations. Keep the reason beside an unavailable action and show transaction confirmation explicitly.
-- Add fields with persistent labels, meaningful units and inline errors. Review the result at 390px and run the production browser checks after changing shared layout.
+Start another page with `PageIntro` in the common container and wrap data-dependent content with `DataBoundary`. Reuse the existing six type sizes and semantic colors. Keep the most important action within the phone's first screen when possible, with secondary actions neutral.
+
+Always carry a market's token into `Token` and fee calculations. Keep IMD bounty values separate. Use `Time` for timestamps; do not reintroduce local-first dates or a testnet selector. Reuse the simulation-gated actions and wallet transaction pipeline. Preserve full questions/hashes through wrapping or disclosure, and never substitute fixtures for unavailable RPC data.
 
 ## Guidance attribution
 
-Design review applied the pinned Better Interface reference across accessibility, layout, writing, typography, colors and UI. It is adapted from [Jakub Krehel’s Better Interface](https://github.com/jakubkrehel/skills/tree/267330e1adfc66a718fb65fa6918c1f06d0a689e/skills/better-interface) (MIT). This documentation method is adapted from [Paul Bakaus’s Impeccable document reference](https://github.com/pbakaus/impeccable/blob/9d715cc4f5564a990ca8345abfdd5df6dc9b41c8/skill/reference/document.md) (Apache-2.0). The supplied combined licenses and notices are retained in [docs/BETTER_INTERFACE_LICENSE.txt](docs/BETTER_INTERFACE_LICENSE.txt).
+The six-domain review follows the pinned [Better Interface](https://github.com/jakubkrehel/skills/tree/267330e1adfc66a718fb65fa6918c1f06d0a689e/skills/better-interface) guidance by Jakub Krehel (MIT). This documentation structure adapts [Impeccable's document reference](https://github.com/pbakaus/impeccable/blob/9d715cc4f5564a990ca8345abfdd5df6dc9b41c8/skill/reference/document.md) by Paul Bakaus (Apache-2.0). Existing combined license and notices remain in [docs/BETTER_INTERFACE_LICENSE.txt](docs/BETTER_INTERFACE_LICENSE.txt).

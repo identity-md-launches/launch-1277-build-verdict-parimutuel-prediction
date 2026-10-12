@@ -334,30 +334,6 @@ button.primary:disabled {
 .notice p:last-child {
   margin-bottom: 0;
 }
-.testnet-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  min-height: 36px;
-  padding: 8px 20px;
-  background: var(--soft);
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: var(--s-caption);
-  line-height: 1.4;
-}
-.testnet-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-  flex: none;
-}
-.banner-extra {
-  margin-inline-start: 24px;
-  color: var(--muted);
-}
 .site-header {
   border-bottom: 1px solid var(--border);
 }
@@ -1920,10 +1896,6 @@ tbody tr:last-child > * {
   .banner-extra {
     display: none;
   }
-  .testnet-banner {
-    padding-inline: 12px;
-    font-size: var(--s-caption);
-  }
   .hero {
     display: block;
     padding-top: 24px;
@@ -2285,4 +2257,102 @@ tbody tr:last-child > * {
   .health-dot {
     background: CanvasText;
   }
+}
+
+/* Mainnet additions retain the existing brand tokens and six-step type scale. */
+.mainnet-notice {
+  padding: 10px 20px;
+  background: var(--surface);
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--s-caption);
+  text-align: center;
+  line-height: 1.6;
+}
+.token-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.market-schedule {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.market-schedule dt {
+  font-size: var(--s-caption);
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.market-schedule dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--s-caption);
+  line-height: 1.7;
+}
+.market-question {
+  max-width: 75ch;
+  overflow-wrap: anywhere;
+}
+.reward-label {
+  display: block;
+  text-align: start;
+  margin-top: 6px;
+  font-weight: 400;
+  font-size: var(--s-caption);
+}
+.unwrap-form {
+  display: flex;
+  align-items: end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.unwrap-form label {
+  flex: 1;
+  min-width: 180px;
+}
+time[title] {
+  text-decoration: underline dotted;
+  text-underline-offset: 4px;
+}
+.header-inner nav {
+  gap: 18px;
+}
+.filter-fields > label {
+  min-width: 0;
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  .header-inner {
+    gap: 16px;
+    padding-inline: 20px;
+  }
+  .header-inner nav {
+    gap: 10px;
+  }
+}
+@media (max-width: 680px) {
+  .token-stat-grid,
+  .market-schedule {
+    grid-template-columns: 1fr;
+  }
+  .market-schedule {
+    gap: 18px;
+  }
+  .mainnet-notice {
+    text-align: start;
+    padding: 8px 20px;
+  }
+  .unwrap-form {
+    align-items: stretch;
+  }
+  .unwrap-form label {
+    flex-basis: 100%;
+  }
+}
+
+.guide-content,
+.guide-aside {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
