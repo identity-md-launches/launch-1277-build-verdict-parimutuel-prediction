@@ -294,6 +294,20 @@ it("a superseded answer does not mark the latest pending ask as answered", () =>
  expect(marketStatus(m,asks,[event("Answered",{intakeRequestId:"latest"})],now)).toBe("Answered");
 });
 describe("Leaderboard economic results", () => {
+  it("counts a zero-reward resolve in both all-time and recent settler rankings", () => {
+    const v = view(1, 0);
+    v.market.settlerReward = v.market.params.settlerReward = 0n;
+    v.market.rewardsPaid = 0n;
+    v.events = [
+      Object.assign(event("OracleAsked", { id: 1n, escalation: false }), {
+        settler: walletB,
+      }),
+    ];
+    for (const since of [0n, now - 604800n])
+      expect(leaderboard([v], "Settlers", "IMD", since)).toEqual([
+        expect.objectContaining({ id: walletB, rewards: 0n, actions: 1 }),
+      ]);
+  });
   it("keeps the negative sign on losses below one token", () => {
     expect(amount(-E(".75"))).toBe("−0.75");
     expect(amount(-1n)).toBe("−<0.001");
@@ -336,18 +350,22 @@ describe("Leaderboard economic results", () => {
     const a = view(1),
       b = view(2, 2, 1);
     a.events.push(
-      event("SettlerRewarded", {
+      Object.assign(event("OracleAsked", { id: a.id, escalation: false }), { logIndex: 1 }),
+      Object.assign(event("SettlerRewarded", {
+        id: a.id,
         settler: walletB,
         amount: E(".05"),
         action: 0,
-      }),
+      }), { logIndex: 2 }),
     );
+    b.events.find((e) => e.name === "Finalized")!.logIndex = 2;
     b.events.push(
-      event("SettlerRewarded", {
+      Object.assign(event("SettlerRewarded", {
+        id: b.id,
         settler: walletB,
         amount: E(".05"),
         action: 2,
-      }),
+      }), { logIndex: 1 }),
     );
     expect(leaderboard([a, b], "Creators", "IMD")[0]).toMatchObject({
       created: 1,

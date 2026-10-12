@@ -253,7 +253,7 @@ try {
         .first()
         .click();
       await page
-        .getByRole("heading", { name: "Every question. On chain." })
+        .getByRole("heading", { name: "Markets", exact: true })
         .waitFor();
       check(
         "Mobile navigation closes after selection",
@@ -264,12 +264,12 @@ try {
     }
   }
   for (const [route, title] of [
-    ["markets", "Every question. On chain."],
+    ["markets", "Markets"],
     ["portfolio", "Your positions."],
-    ["leaderboard", "On the record."],
+    ["leaderboard", "Leaderboard"],
     ["for-agents", "Build with Verdict."],
     ["how-it-works", "A question. A public verdict."],
-    ["create", "Put a question on chain."],
+    ["create", "Create a market"],
   ]) {
     await page.goto(url + "#/" + route);
     await page.getByRole("heading", { name: title, exact: true }).waitFor();

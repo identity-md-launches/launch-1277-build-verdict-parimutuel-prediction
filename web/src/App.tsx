@@ -486,7 +486,7 @@ function Markets() {
   return (
     <>
       <PageIntro
-        title="Every question. On chain."
+        title="Markets"
         action={
           <a className="button" href="#/create">
             Create market <span aria-hidden="true">+</span>

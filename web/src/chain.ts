@@ -13,6 +13,11 @@ import {
   parseAbi,
 } from "viem";
 import { loadMetadata } from "./metadata";
+import {
+  directSettlementActor,
+  settlementAction,
+  settlementActor,
+} from "./settlement";
 import { mainnet } from "viem/chains";
 import marketsAbiJson from "./abi/VerdictMarkets.json";
 import oracleAbiJson from "./abi/VerdictOracle.json";
@@ -130,6 +135,38 @@ export function decodeLogs(
 const scanned = new Map<number, { block: bigint; events: ChainEvent[] }>();
 const blockTimes = new Map<string, bigint>();
 const verifiedChains = new Set<number>();
+const settlementTransactions = new Map<
+  string,
+  ReturnType<ReturnType<typeof makeClient>["getTransaction"]>
+>();
+
+export async function attributeSettlements(
+  c: ChainConfig,
+  events: ChainEvent[],
+) {
+  await mapLimit(
+    events.filter((e) => settlementAction(e) !== undefined),
+    4,
+    async (e) => {
+      if (settlementActor(e, events)) return;
+      const key = `${c.chainId}:${e.blockNumber}:${e.transactionHash}`;
+      try {
+        let pending = settlementTransactions.get(key);
+        if (!pending) {
+          pending = clientFor(c).getTransaction({ hash: e.transactionHash });
+          settlementTransactions.set(key, pending);
+        }
+        const tx = await pending;
+        if (tx.blockNumber !== e.blockNumber) settlementTransactions.delete(key);
+        e.settler = directSettlementActor(e, tx, c.deployment!.markets);
+      } catch {
+        // Keep other market data usable; a refresh retries failed lookups. The
+        // leaderboard explicitly reports actions whose caller is still unknown.
+        settlementTransactions.delete(key);
+      }
+    },
+  );
+}
 export async function verifyDeployment(c: ChainConfig): Promise<void> {
   if (verifiedChains.has(c.chainId)) return;
   const client = clientFor(c),
@@ -343,6 +380,7 @@ export async function loadSnapshot(
   await mapLimit(events, 4, async (e) => {
     e.timestamp = await eventTime(c, e);
   });
+  await attributeSettlements(c, events);
   return {
     markets,
     events,

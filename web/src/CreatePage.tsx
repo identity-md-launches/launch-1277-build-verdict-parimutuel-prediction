@@ -65,7 +65,7 @@ function CreatorAccess() {
   }, [wallet.account, data, config.chainId, revision]);
   return (
     <>
-      <PageIntro title="Put a question on chain.">
+      <PageIntro title="Create a market">
         Define the outcomes, fund the oracle, and let the evidence decide.
       </PageIntro>
       {!wallet.account ? (

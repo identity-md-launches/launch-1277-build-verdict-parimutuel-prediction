@@ -1,0 +1,1534 @@
+{
+  "checkedAt": "2026-10-12T04:44:15.038Z",
+  "before": false,
+  "browser": "Chromium",
+  "scope": "Production dist under /preview/; all external requests intercepted, zero broadcasts",
+  "results": [
+    "Markets fits 768px tablet",
+    "Every Markets field, label and status control fits at 320px",
+    "Every Markets field, label and status control fits at 360px",
+    "Every Markets field, label and status control fits at 390px",
+    "Every Markets field, label and status control fits at 680px",
+    "Every Markets field, label and status control fits at 681px",
+    "Every Markets field, label and status control fits at 720px",
+    "Every Markets field, label and status control fits at 767px",
+    "Every Markets field, label and status control fits at 769px",
+    "Every Markets field, label and status control fits at 820px",
+    "Every Markets field, label and status control fits at 883px",
+    "Every Markets field, label and status control fits at 884px",
+    "Every Markets field, label and status control fits at 900px",
+    "Every Markets field, label and status control fits at 901px",
+    "Every Markets field, label and status control fits at 1024px",
+    "Every Markets field, label and status control fits at 1440px",
+    "Keyboard reaches Token after search",
+    "Keyboard reaches Sort by after Token",
+    "Search, token and sort filters preserve the matching WETH market",
+    "Clear filters restores both markets",
+    "Automated accessibility scan: Markets, tablet 768px, dark",
+    "Automated accessibility scan: Markets, tablet 768px, light",
+    "markets heading names its task",
+    "markets heading stays on the first 390px screen",
+    "leaderboard heading names its task",
+    "leaderboard heading stays on the first 390px screen",
+    "create heading names its task",
+    "create heading stays on the first 390px screen",
+    "Zero-reward settlers keep all four actions (all)",
+    "Zero-reward settlers keep all four actions (week)",
+    "Keyboard can scroll to the settler reward and action columns",
+    "Zero-reward leaderboard has no unverified callers or document overflow",
+    "Settlement transaction envelopes were actually read",
+    "Automated accessibility scan: Zero-reward settlers, 390px, light",
+    "Unavailable caller data is disclosed without breaking market reads",
+    "Refresh retries failed caller lookups and recovers both zero-reward rows",
+    "Review regression flows have no uncaught browser errors"
+  ],
+  "observations": {
+    "layouts": [
+      {
+        "viewport": 768,
+        "scrollWidth": 768,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 28,
+            "right": 108.8125,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 740,
+            "width": 712,
+            "height": 179.59375
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 372,
+            "width": 344,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 396,
+            "right": 740,
+            "width": 344,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 28,
+            "right": 740,
+            "width": 712,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 320,
+        "scrollWidth": 320,
+        "fields": [
+          {
+            "name": "All",
+            "x": 16,
+            "right": 65.40625,
+            "width": 49.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 69.40625,
+            "right": 126.609375,
+            "width": 57.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 130.609375,
+            "right": 203.421875,
+            "width": 72.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 207.421875,
+            "right": 272.4375,
+            "width": 65.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 16,
+            "right": 104.40625,
+            "width": 88.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 108.40625,
+            "right": 220.21875,
+            "width": 111.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 16,
+            "right": 112.203125,
+            "width": 96.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 116.203125,
+            "right": 189.015625,
+            "width": 72.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 16,
+            "right": 304,
+            "width": 288,
+            "height": 264.390625
+          },
+          {
+            "name": "Search questions",
+            "x": 16,
+            "right": 304,
+            "width": 288,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 16,
+            "right": 304,
+            "width": 288,
+            "height": 76.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 16,
+            "right": 304,
+            "width": 288,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 360,
+        "scrollWidth": 360,
+        "fields": [
+          {
+            "name": "All",
+            "x": 16,
+            "right": 65.40625,
+            "width": 49.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 69.40625,
+            "right": 126.609375,
+            "width": 57.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 130.609375,
+            "right": 203.421875,
+            "width": 72.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 207.421875,
+            "right": 272.4375,
+            "width": 65.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 16,
+            "right": 104.40625,
+            "width": 88.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 108.40625,
+            "right": 220.21875,
+            "width": 111.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 224.21875,
+            "right": 320.421875,
+            "width": 96.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 16,
+            "right": 88.8125,
+            "width": 72.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 16,
+            "right": 344,
+            "width": 328,
+            "height": 264.390625
+          },
+          {
+            "name": "Search questions",
+            "x": 16,
+            "right": 344,
+            "width": 328,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 16,
+            "right": 344,
+            "width": 328,
+            "height": 76.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 16,
+            "right": 344,
+            "width": 328,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "fields": [
+          {
+            "name": "All",
+            "x": 20,
+            "right": 69.40625,
+            "width": 49.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 73.40625,
+            "right": 130.609375,
+            "width": 57.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 134.609375,
+            "right": 207.421875,
+            "width": 72.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 211.421875,
+            "right": 276.4375,
+            "width": 65.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 280.4375,
+            "right": 368.84375,
+            "width": 88.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 20,
+            "right": 131.8125,
+            "width": 111.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 135.8125,
+            "right": 232.015625,
+            "width": 96.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 236.015625,
+            "right": 308.828125,
+            "width": 72.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 20,
+            "right": 370,
+            "width": 350,
+            "height": 264.390625
+          },
+          {
+            "name": "Search questions",
+            "x": 20,
+            "right": 370,
+            "width": 350,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 20,
+            "right": 370,
+            "width": 350,
+            "height": 76.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 20,
+            "right": 370,
+            "width": 350,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 680,
+        "scrollWidth": 680,
+        "fields": [
+          {
+            "name": "All",
+            "x": 20,
+            "right": 69.40625,
+            "width": 49.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 73.40625,
+            "right": 130.609375,
+            "width": 57.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 134.609375,
+            "right": 207.421875,
+            "width": 72.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 211.421875,
+            "right": 276.4375,
+            "width": 65.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 280.4375,
+            "right": 368.84375,
+            "width": 88.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 372.84375,
+            "right": 484.65625,
+            "width": 111.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 488.65625,
+            "right": 584.859375,
+            "width": 96.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 20,
+            "right": 92.8125,
+            "width": 72.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 20,
+            "right": 660,
+            "width": 640,
+            "height": 264.390625
+          },
+          {
+            "name": "Search questions",
+            "x": 20,
+            "right": 660,
+            "width": 640,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 20,
+            "right": 660,
+            "width": 640,
+            "height": 76.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 20,
+            "right": 660,
+            "width": 640,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 681,
+        "scrollWidth": 681,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 28,
+            "right": 132.203125,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 140.203125,
+            "right": 221.015625,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 653,
+            "width": 625,
+            "height": 179.59375
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 328.5,
+            "width": 300.5,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 352.5,
+            "right": 653,
+            "width": 300.5,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 28,
+            "right": 653,
+            "width": 625,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 720,
+        "scrollWidth": 720,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 28,
+            "right": 108.8125,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 692,
+            "width": 664,
+            "height": 179.59375
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 348,
+            "width": 320,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 372,
+            "right": 692,
+            "width": 320,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 28,
+            "right": 692,
+            "width": 664,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 767,
+        "scrollWidth": 767,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 28,
+            "right": 108.8125,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 739,
+            "width": 711,
+            "height": 179.59375
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 371.5,
+            "width": 343.5,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 395.5,
+            "right": 739,
+            "width": 343.5,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 28,
+            "right": 739,
+            "width": 711,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 769,
+        "scrollWidth": 769,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 28,
+            "right": 108.8125,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 741,
+            "width": 713,
+            "height": 179.59375
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 372.5,
+            "width": 344.5,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 396.5,
+            "right": 741,
+            "width": 344.5,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 28,
+            "right": 741,
+            "width": 713,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 820,
+        "scrollWidth": 820,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 680.859375,
+            "right": 761.671875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 792,
+            "width": 764,
+            "height": 179.59375
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 398,
+            "width": 370,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 422,
+            "right": 792,
+            "width": 370,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 28,
+            "right": 792,
+            "width": 764,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 883,
+        "scrollWidth": 883,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 680.859375,
+            "right": 761.671875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 855,
+            "width": 827,
+            "height": 179.59375
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 429.5,
+            "width": 401.5,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 453.5,
+            "right": 855,
+            "width": 401.5,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 28,
+            "right": 855,
+            "width": 827,
+            "height": 76.796875
+          }
+        ]
+      },
+      {
+        "viewport": 884,
+        "scrollWidth": 884,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 680.859375,
+            "right": 761.671875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 856,
+            "width": 828,
+            "height": 78.796875
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 288,
+            "width": 260,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 312,
+            "right": 572,
+            "width": 260,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 596,
+            "right": 856,
+            "width": 260,
+            "height": 78.796875
+          }
+        ]
+      },
+      {
+        "viewport": 900,
+        "scrollWidth": 900,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 680.859375,
+            "right": 761.671875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 872,
+            "width": 844,
+            "height": 78.796875
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 293.328125,
+            "width": 265.328125,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 317.328125,
+            "right": 582.671875,
+            "width": 265.34375,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 606.671875,
+            "right": 872,
+            "width": 265.328125,
+            "height": 78.796875
+          }
+        ]
+      },
+      {
+        "viewport": 901,
+        "scrollWidth": 901,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 680.859375,
+            "right": 761.671875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 873,
+            "width": 845,
+            "height": 78.796875
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 293.65625,
+            "width": 265.65625,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 317.65625,
+            "right": 583.328125,
+            "width": 265.671875,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 607.328125,
+            "right": 873,
+            "width": 265.671875,
+            "height": 78.796875
+          }
+        ]
+      },
+      {
+        "viewport": 1024,
+        "scrollWidth": 1024,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 680.859375,
+            "right": 761.671875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 996,
+            "width": 968,
+            "height": 78.796875
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 334.65625,
+            "width": 306.65625,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 358.65625,
+            "right": 665.328125,
+            "width": 306.671875,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 689.328125,
+            "right": 996,
+            "width": 306.671875,
+            "height": 78.796875
+          }
+        ]
+      },
+      {
+        "viewport": 1440,
+        "scrollWidth": 1440,
+        "fields": [
+          {
+            "name": "All",
+            "x": 120,
+            "right": 177.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 185.40625,
+            "right": 250.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 258.609375,
+            "right": 339.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 347.421875,
+            "right": 420.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 428.4375,
+            "right": 524.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 532.84375,
+            "right": 652.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 660.65625,
+            "right": 764.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 772.859375,
+            "right": 853.671875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 120,
+            "right": 1320,
+            "width": 1200,
+            "height": 78.796875
+          },
+          {
+            "name": "Search questions",
+            "x": 120,
+            "right": 504,
+            "width": 384,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 528,
+            "right": 912,
+            "width": 384,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 936,
+            "right": 1320,
+            "width": 384,
+            "height": 78.796875
+          }
+        ]
+      }
+    ],
+    "headings": [
+      {
+        "route": "markets",
+        "heading": "Markets"
+      },
+      {
+        "route": "leaderboard",
+        "heading": "Leaderboard"
+      },
+      {
+        "route": "create",
+        "heading": "Create a market"
+      }
+    ],
+    "settlers": [
+      {
+        "period": "all",
+        "rows": [
+          "1\t\nverdict-fixture.eth↗\n(opens in a new tab)\n\t0 IMD\t3",
+          "2\t\n0x3d3c…25cb↗\n(opens in a new tab)\n\t0 IMD\t1"
+        ]
+      },
+      {
+        "period": "week",
+        "rows": [
+          "1\t\nverdict-fixture.eth↗\n(opens in a new tab)\n\t0 IMD\t3",
+          "2\t\n0x3d3c…25cb↗\n(opens in a new tab)\n\t0 IMD\t1"
+        ]
+      }
+    ]
+  },
+  "axeResults": [
+    {
+      "label": "Markets, tablet 768px, dark",
+      "violations": []
+    },
+    {
+      "label": "Markets, tablet 768px, light",
+      "violations": []
+    },
+    {
+      "label": "Zero-reward settlers, 390px, light",
+      "violations": []
+    }
+  ],
+  "errors": []
+}

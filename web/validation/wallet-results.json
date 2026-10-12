@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-12T04:09:02.990Z",
+  "checkedAt": "2026-10-12T04:41:15.754Z",
   "scope": "Deterministic RPC and EIP-6963 mock wallet with mainnet ABI/runtime checks. All writes intercepted; no live transaction broadcast.",
   "results": [
     "Ordered RPC fallback recovers primary failure",
@@ -70,5 +70,5 @@
   ],
   "errors": [],
   "transactionCount": 14,
-  "requestCount": 839
+  "requestCount": 881
 }

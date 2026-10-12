@@ -961,6 +961,7 @@ progress::-moz-progress-bar {
   flex-shrink: 0;
 }
 .market-toolbar {
+  min-width: 0;
   border-bottom: 1px solid var(--border);
   padding-bottom: 24px;
   display: grid;
@@ -983,11 +984,14 @@ progress::-moz-progress-bar {
 }
 .filter-fields {
   display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
   justify-content: space-between;
   gap: 24px;
 }
 .filter-fields label {
-  width: 260px;
+  flex: 1 1 260px;
+  min-width: 0;
 }
 .result-count {
   font-size: var(--s-caption);
@@ -2041,6 +2045,7 @@ tbody tr:last-child > * {
     flex-direction: column;
   }
   .filter-fields label {
+    flex-basis: auto;
     width: 100%;
   }
   .panel {

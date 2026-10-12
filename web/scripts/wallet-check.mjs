@@ -19,6 +19,8 @@ const {
   decodeFunctionData,
   decodeEventLog,
   encodeFunctionResult,
+  encodeFunctionData,
+  decodeAbiParameters,
   encodeErrorResult,
   erc20Abi,
   toHex,
@@ -130,6 +132,7 @@ const baseMarkets = fixture.markets.map((x) => {
   return m;
 });
 let mockHead = d.block + 2000n;
+const reviewMode = process.argv.includes("--review") || process.argv.includes("--review-before");
 let scenario = "open",
   allowance = 0n,
   allowed = true,
@@ -147,6 +150,9 @@ const pools = [
 ];
 function market(index) {
   const m = structuredClone(baseMarkets[index > 1 ? 0 : index]);
+  if (scenario === "settlers-zero") {
+    m.params.settlerReward = m.settlerReward = m.rewardsPaid = 0n;
+  }
   if (index === 0 && wethMode) {
     m.params.collateralId = 1;
     m.collateral = d.weth;
@@ -193,6 +199,39 @@ function rpcError(name) {
     },
   };
 }
+// Mainnet-shaped zero-reward lifecycle fixture. These synthetic transaction
+// envelopes are used only by the review regression mode and never broadcast.
+function settlementTransaction(hash) {
+  const log = captured.logs.find((l) => {
+    if (l.transactionHash !== hash || l.address !== d.markets) return false;
+    return ["OracleAsked", "OutcomeProposed", "Finalized", "Voided"].includes(
+      decodeEventLog({ abi, data: l.data, topics: l.topics }).eventName,
+    );
+  });
+  if (!log) return captured.transaction;
+  const e = decodeEventLog({ abi, data: log.data, topics: log.topics });
+  const functionName = { OracleAsked: "resolve", OutcomeProposed: "propose", Finalized: "finalize", Voided: "voidMarket" }[e.eventName];
+  const args = [e.args.id];
+  if (functionName === "resolve") {
+    const creation = captured.logs.map((l) => decodeEventLog({
+      abi: l.address === d.markets ? abi : oracleAbi, data: l.data, topics: l.topics,
+    })).find((l) => l.eventName === "MarketCreated" && l.args.id === e.args.id);
+    args.push(creation.args.body);
+  }
+  if (functionName === "propose") {
+    const call = decodeFunctionData({
+      abi: parseAbi(["function complete(bytes32,uint8,bytes32,string,bytes)"]),
+      data: captured.transaction.input,
+    });
+    const attestation = abi.find((a) => a.type === "function" && a.name === "propose").inputs[1];
+    args.push(decodeAbiParameters([{ type: "bytes32" }, attestation, { type: "bytes" }], call.args[4])[1]);
+  }
+  return {
+    ...captured.transaction, hash, blockNumber: log.blockNumber,
+    to: d.markets, from: e.args.id === 1n ? account : captured.transaction.from,
+    input: encodeFunctionData({ abi, functionName, args }),
+  };
+}
 function resolveRpc(payload) {
   const { method, params = [] } = payload;
   requests.push({ method, params });
@@ -221,7 +260,7 @@ function resolveRpc(payload) {
             message: "temporary transaction lookup unavailable",
           },
         }
-      : { result: captured.transaction };
+      : { result: reviewMode ? settlementTransaction(params[0]) : captured.transaction };
   if (method === "eth_getLogs") {
     const [filter] = params;
     assert.ok(
@@ -654,6 +693,17 @@ const shot = async (name) => {
   });
 };
 try {
+  if (reviewMode) {
+    const { reviewRegressions } = await import("./review-regressions.mjs");
+    await reviewRegressions({
+      page, url, root, check, scanAxe, shot, errors, results, axeResults, requests,
+      before: process.argv.includes("--review-before"),
+      configure: (options) => {
+        if (options.scenario !== undefined) scenario = options.scenario;
+        if (options.failTransaction !== undefined) failTransaction = options.failTransaction;
+      },
+    });
+  } else {
   await page.goto(url + "#/market/1");
   await page.getByRole("heading", { name: "Take a position" }).waitFor();
   await connect();
@@ -832,7 +882,7 @@ try {
     .getByRole("button", { name: "Approve bounty & create market" })
     .click();
   await page
-    .getByRole("heading", { name: "Every question. On chain." })
+    .getByRole("heading", { name: "Markets", exact: true })
     .waitFor();
   const created = decodeFunctionData({ abi, data: sent.at(-1).data });
   check(
@@ -992,6 +1042,7 @@ try {
     path.join(root, "web/validation/wallet-results.json"),
     JSON.stringify(report, null, 2) + "\n",
   );
+  }
 } catch (e) {
   fs.writeFileSync(
     path.join(root, "test/scratch/wallet-failure.json"),

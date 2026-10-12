@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Address } from "viem";
-import { leaderboard, type Board } from "./leaderboard";
+import { leaderboard, unattributedSettlements, type Board } from "./leaderboard";
 import { DataBoundary, Empty, External, PageIntro, Token } from "./components";
 import { useData } from "./store";
 import { useWallet } from "./wallet";
@@ -14,6 +14,9 @@ export function Leaderboard() {
     [period, setPeriod] = useState("all"),
     [names, setNames] = useState<Record<string, string>>({});
   const since = period === "week" ? now - 604800n : 0n;
+  const unattributed = board === "Settlers"
+    ? unattributedSettlements(data?.markets || [], since)
+    : 0;
   const tokens =
     board === "Settlers" ? ["IMD" as const] : ["IMD" as const, "WETH" as const];
   const groups = tokens.map((token) => ({
@@ -49,8 +52,8 @@ export function Leaderboard() {
   }, [addresses.join(), config.chainId]);
   return (
     <>
-      <PageIntro title="On the record.">
-        The Verdict leaderboard. IMD and WETH ranked separately.
+      <PageIntro title="Leaderboard">
+        IMD and WETH ranked separately.
       </PageIntro>
       <div className="market-toolbar">
         <div
@@ -83,8 +86,17 @@ export function Leaderboard() {
           ? "Ranked by winnings due (claimed or unclaimed) minus all stakes on finalized markets. At least 3 finalized markets in the selected period are required. Voids contribute zero net result. Win rate means holding a winning stake, not necessarily a profit. The 7-day window uses settlement time and includes each market’s full betting history."
           : board === "Creators"
             ? "Ranked by creator fees earned. The 7-day window counts creation, bets and fee events when each occurred."
-            : "Ranked by IMD rewards paid by SettlerRewarded events, across both market tokens. Zero-value reward events count as actions; unrewarded escalation does not."}
+            : "Ranked by IMD rewards earned across both market tokens. Actions count successful requests, proposals, finalizations and voids, including those with no reward. Escalation requests do not count."}
       </p>
+      {unattributed > 0 && (
+        <p className="notice" role="status">
+          {unattributed} settlement {unattributed === 1 ? "action has" : "actions have"} an
+          unverified caller and {unattributed === 1 ? "is" : "are"} excluded
+          from wallet totals.
+          Refresh to retry transaction lookups. Indirect calls without a reward
+          event cannot identify the caller from standard transaction data.
+        </p>
+      )}
       {board === "Agents" && (
         <p className="notice">
           Agent IDs are caller-provided labels, not verified identities. ID 0

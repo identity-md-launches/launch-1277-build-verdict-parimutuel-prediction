@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-12T04:07:35.315Z",
+  "checkedAt": "2026-10-12T04:42:10.958Z",
   "scope": "Production export served under /preview/; live Ethereum reads relayed through the supplied loopback RPC. No signing or transactions. Public browser endpoints not independently exercised in this pass.",
   "results": [
     "Local Archivo and IBM Plex Mono fonts loaded",

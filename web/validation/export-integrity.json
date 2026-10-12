@@ -1,11 +1,11 @@
 {
-  "checkedAt": "2026-10-12T04:15:13.308Z",
+  "checkedAt": "2026-10-12T04:46:26.342Z",
   "siteLabel": "verdict",
   "buildDirectory": "dist",
-  "exportBytes": 769522,
-  "prospectiveTreeBytesExcludingThisReport": 4297950,
-  "existingGitObjectBytes": 1029432,
-  "conservativeBundleBudgetBytes": 5527382,
+  "exportBytes": 771290,
+  "prospectiveTreeBytesExcludingThisReport": 4375619,
+  "existingGitObjectBytes": 1338849,
+  "conservativeBundleBudgetBytes": 5914468,
   "maximumBundleBytes": 8388608,
   "assertions": [
     "Title/description/OG/favicon present",
@@ -38,14 +38,14 @@
       "sha256": "dcd8674600327a8a7bcd087c4b1de54c45cbbe191a73fcaa943a8442cdb53a2d"
     },
     {
-      "path": "dist/assets/index-CAgqfU-S.css",
-      "bytes": 34047,
-      "sha256": "5b8333d6eac420ac7b3e32b2f331c7bb162cb8d86d51d720b2b3e4be6d3f27a4"
+      "path": "dist/assets/index-0oFD5Udu.js",
+      "bytes": 139413,
+      "sha256": "0dd270445afd71945415ec3998cabf120299b07c41e171428e9db939e6200fe1"
     },
     {
-      "path": "dist/assets/index-DU6emag0.js",
-      "bytes": 137715,
-      "sha256": "712a01af97ae07513352ec0ed960d6e9f120e5b32b4c6f2e21630f01a46fe383"
+      "path": "dist/assets/index-DefZQ3kN.css",
+      "bytes": 34117,
+      "sha256": "169983ccea16b2854677539a4ee16535cfb0ceca29ca707ba21b38e7b16d6b80"
     },
     {
       "path": "dist/assets/react-DbQ9GvLb.js",
@@ -85,7 +85,7 @@
     {
       "path": "dist/index.html",
       "bytes": 1380,
-      "sha256": "048496075e2bf92adcddf28a55a171b06f21e75f36ad705bf0c22f8a24df7cad"
+      "sha256": "f971e8758acd44a5984fbb16abe4e1124a7465137590b8a7cfba458e26456358"
     },
     {
       "path": "dist/social.png",

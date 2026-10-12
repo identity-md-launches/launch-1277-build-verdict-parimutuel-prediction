@@ -1,0 +1,135 @@
+{
+  "checkedAt": "2026-10-12T04:39:53.617Z",
+  "before": true,
+  "browser": "Chromium",
+  "scope": "Production dist under /preview/; all external requests intercepted, zero broadcasts",
+  "results": [
+    "Reproduced 768px Markets overflow",
+    "markets heading reproduction",
+    "leaderboard heading reproduction",
+    "create heading reproduction",
+    "Reproduced omitted zero-reward settlers (all)",
+    "Reproduced omitted zero-reward settlers (week)",
+    "Review regression flows have no uncaught browser errors"
+  ],
+  "observations": {
+    "layouts": [
+      {
+        "viewport": 768,
+        "scrollWidth": 856,
+        "fields": [
+          {
+            "name": "All",
+            "x": 28,
+            "right": 85.40625,
+            "width": 57.40625,
+            "height": 44
+          },
+          {
+            "name": "Open",
+            "x": 93.40625,
+            "right": 158.609375,
+            "width": 65.203125,
+            "height": 44
+          },
+          {
+            "name": "Closed",
+            "x": 166.609375,
+            "right": 247.421875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "Asked",
+            "x": 255.421875,
+            "right": 328.4375,
+            "width": 73.015625,
+            "height": 44
+          },
+          {
+            "name": "Answered",
+            "x": 336.4375,
+            "right": 432.84375,
+            "width": 96.40625,
+            "height": 44
+          },
+          {
+            "name": "Provisional",
+            "x": 440.84375,
+            "right": 560.65625,
+            "width": 119.8125,
+            "height": 44
+          },
+          {
+            "name": "Finalized",
+            "x": 568.65625,
+            "right": 672.859375,
+            "width": 104.203125,
+            "height": 44
+          },
+          {
+            "name": "Voided",
+            "x": 680.859375,
+            "right": 761.671875,
+            "width": 80.8125,
+            "height": 44
+          },
+          {
+            "name": "filter-fields",
+            "x": 28,
+            "right": 856,
+            "width": 828,
+            "height": 78.796875
+          },
+          {
+            "name": "Search questions",
+            "x": 28,
+            "right": 288,
+            "width": 260,
+            "height": 78.796875
+          },
+          {
+            "name": "Token",
+            "x": 312,
+            "right": 572,
+            "width": 260,
+            "height": 78.796875
+          },
+          {
+            "name": "Sort by",
+            "x": 596,
+            "right": 856,
+            "width": 260,
+            "height": 78.796875
+          }
+        ]
+      }
+    ],
+    "headings": [
+      {
+        "route": "markets",
+        "heading": "Every question. On chain."
+      },
+      {
+        "route": "leaderboard",
+        "heading": "On the record."
+      },
+      {
+        "route": "create",
+        "heading": "Put a question on chain."
+      }
+    ],
+    "settlers": [
+      {
+        "period": "all",
+        "rows": []
+      },
+      {
+        "period": "week",
+        "rows": []
+      }
+    ]
+  },
+  "axeResults": [],
+  "errors": []
+}

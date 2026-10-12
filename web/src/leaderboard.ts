@@ -1,4 +1,5 @@
 import { claimable, tokenSymbol } from "./domain";
+import { settlementAction, settlementActor } from "./settlement";
 import type { ChainEvent, MarketView, TokenSymbol } from "./types";
 export type Board = "Traders" | "Agents" | "Creators" | "Settlers";
 export interface Rank {
@@ -16,6 +17,15 @@ export interface Rank {
 }
 const inWindow = (e: ChainEvent, since: bigint) =>
   since === 0n || (e.timestamp !== undefined && e.timestamp >= since);
+export function unattributedSettlements(markets: MarketView[], since = 0n) {
+  return markets.reduce(
+    (count, v) => count + v.events.filter((e) =>
+      inWindow(e, since) && settlementAction(e) !== undefined &&
+      !settlementActor(e, v.events),
+    ).length,
+    0,
+  );
+}
 export function leaderboard(
   markets: MarketView[],
   board: Board,
@@ -45,15 +55,14 @@ export function leaderboard(
   for (const v of markets) {
     if (board === "Settlers") {
       if (token !== "IMD") continue;
-      for (const e of v.events.filter(
-        (e) => e.name === "SettlerRewarded" && inWindow(e, since),
-      )) {
-        const r = row(
-          e.args.settler.toLowerCase(),
-          e.args.settler.toLowerCase(),
-        );
-        r.rewards += e.args.amount;
-        r.actions++;
+      for (const e of v.events) {
+        if (!inWindow(e, since)) continue;
+        if (e.name === "SettlerRewarded") {
+          const address = e.args.settler.toLowerCase();
+          row(address, address).rewards += e.args.amount;
+        }
+        const actor = settlementActor(e, v.events)?.toLowerCase();
+        if (actor) row(actor, actor).actions++;
       }
       continue;
     }
@@ -179,7 +188,7 @@ export function leaderboard(
     .filter((r) =>
       board === "Traders" || board === "Agents"
         ? r.finalized >= 3
-        : r.created || r.volume || r.fees || r.actions,
+        : r.created || r.volume || r.fees || r.rewards || r.actions,
     )
     .sort((a, b) =>
       a[metric] > b[metric]

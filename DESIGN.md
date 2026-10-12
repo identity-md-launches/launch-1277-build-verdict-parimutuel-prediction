@@ -6,6 +6,8 @@ Verdict serves people and agents using Ethereum prediction markets. The existing
 
 The implementation is in [web/src/styles.css](web/src/styles.css), [shared components](web/src/components.tsx) and [App.tsx](web/src/App.tsx). Dark is the default; light mode is a local preference. The mainnet notice replaces the old banner and stays visible on every route.
 
+Task pages use direct `PageIntro` titles: **Markets**, **Leaderboard** and **Create a market**. Their existing Archivo styling and natural height are preserved; Leaderboard's supporting line is “IMD and WETH ranked separately.”
+
 ## Colors
 
 Reuse the existing hex primitives and semantic properties; do not introduce a second color system.
@@ -52,6 +54,8 @@ The common container and header cap at 1280px with 40px inline padding. Spacing 
 
 The guide content and sidebar have `min-width: 0` so fee tables scroll inside their own region without widening the page. Tables use a labeled, keyboard-focusable horizontal scroll container; long JSON and identifiers remain available through wrapping and native disclosures. The WETH unwrap form wraps into a full-width field followed by actions on phones.
 
+The Markets toolbar and filter row also have `min-width: 0`. Filter labels use `flex: 1 1 260px` inside a wrapping flex row with a 24px gap. At 768px the search/token fields share a row and Sort by takes the next full row; status buttons wrap within the container. At 680px and below, the existing column layout uses a 16px gap and an automatic field basis. Revision checks cover 320, 360, 390, 680, 681, 720, 767, 768, 769, 820, 883, 884, 900, 901, 1024 and 1440px without document overflow; see [the revision report](docs/WEBSITE_REVISION.md).
+
 Rendered checks cover home at 320, 360, 390, 768, 1024 and 1440px; every main route at 360, 1024 and 1440px; populated market, creator, portfolio and leaderboard flows at 360px. The 390×844 first screen visibly contains the brand, mainnet notice, product description and Explore markets action. Native browser zoom, physical devices and translated/RTL layouts were not tested.
 
 ## Elevation & depth
@@ -80,6 +84,8 @@ Buttons use 5px radii; inputs and badges 4px; section containers 6px; cards/pane
 | `FeeTable`, agent guide | `ForAgents.tsx` | On-chain fee/cap table, address links and local ABI downloads |
 
 Native buttons, links, selects, radio controls, details and dialog supply keyboard behavior. Inputs have persistent labels; validation focuses the failing field and uses alert text. Progress is a status region; transaction notices remain until dismissed. No external X widget is loaded: sharing uses normal links.
+
+Settlers retain rows with zero IMD rewards and verified actions. An adjacent status notice states how many actions lack verified callers and offers refresh guidance, so an incomplete attribution is distinguishable from no activity. Reward amounts and action counts use the existing table typography and mobile scroll region.
 
 Motion is limited to 120ms press transforms and the loading indicator, gated by `prefers-reduced-motion: no-preference`. No autoplay or entrance animation is present. Theme switching changes colors immediately rather than transitioning the page.
 

@@ -71,6 +71,8 @@ export interface ChainEvent {
   blockNumber: bigint;
   logIndex: number;
   timestamp?: bigint;
+  // Verified direct transaction caller for a settlement without a reward log.
+  settler?: Address;
 }
 export interface Attestation {
   requestId: Hex;

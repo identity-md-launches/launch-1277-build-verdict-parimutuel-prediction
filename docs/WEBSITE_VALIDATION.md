@@ -1,5 +1,7 @@
 # Verdict mainnet website validation
 
+The original migration report below is retained as history. The subsequent [website revision report](WEBSITE_REVISION.md) supersedes its settler-attribution limitation and records the final export's regression checks, typecheck, build and six-domain review. Browser and wallet JSON records were regenerated against the revised export; the contract-verification record remains from the original migration.
+
 ## Scope and result
 
 **Complete for the website implementation and static delivery.** Source, unchanged package manifest/lockfile, built `dist/`, updated design documentation and repeatable checks are included. Publication of the existing `verdict` site is the network publisher's handoff; no publication command, deployment, signing or transaction broadcast occurred here. This is a worker report, not an independent security audit or behavioral certification.

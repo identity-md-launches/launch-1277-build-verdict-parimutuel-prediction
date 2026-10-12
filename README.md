@@ -24,6 +24,7 @@ Open the preview URL printed by Vite. `dev` runs the development server. The pro
 node web/scripts/isolated.mjs browser:install
 node web/scripts/isolated.mjs test:browser
 node web/scripts/isolated.mjs test:wallet
+node web/scripts/isolated.mjs test:wallet --review
 node web/scripts/isolated.mjs verify:contracts
 node web/scripts/check-export.mjs
 ```
@@ -39,11 +40,13 @@ That loopback endpoint is only a verification override; it is absent from the pr
 
 Actual results and limits are in [docs/WEBSITE_VALIDATION.md](docs/WEBSITE_VALIDATION.md), with machine-readable records in [web/validation/](web/validation/). Unit tests cover the required question-hash vector, supplied Intake v2 attestation/hash, outcome labels, fee rounding per token, bounty minimum, UTC defaults and win/loss/void leaderboard results. Screenshots are generated in disposable `test/scratch/browser/`; no preview, browser profile or cache is part of the site.
 
+The [website revision report](docs/WEBSITE_REVISION.md) records the tablet filter, zero-reward settler and task-heading fixes, their reproductions and final checks. `test:wallet --review` exercises the finished export with zero-reward settlement transactions, both leaderboard periods, caller-lookup recovery, keyboard filters and tablet breakpoint coverage. `--review-before` is a reproduction mode for the previous export and is expected to fail against the fixed site.
+
 ## Publish the static export
 
 The assignment publisher pins the contents of **`dist/`** and updates the existing **`verdict`** site after submission. It does not rebuild. No publishing command or on-chain transaction was run here. On another static host, upload the same directory unchanged. `base: './'`, relative assets and hash routes allow hosting at a gateway subpath without server rewrites. Keep the ABI downloads, fonts/licenses, favicon, social image, scripts and styles together.
 
-Include `web/`, its unchanged package manifest/lockfile, `dist/`, `DESIGN.md` and website documentation in the submission. Do not include `node_modules`, caches, npm archives or `test/scratch`. No ignore rules were changed. The export is about 0.77 MB; the conservative complete Git submission estimate is below 5.6 MB against the 8 MiB limit (exact figures are recorded by the export check).
+Include `web/`, its unchanged package manifest/lockfile, `dist/`, `DESIGN.md` and website documentation in the submission. Do not include `node_modules`, caches, npm archives or `test/scratch`. No ignore rules were changed. The export is about 0.77 MB; the conservative complete Git submission estimate is below 6.0 MB against the 8 MiB limit (exact figures are recorded by the export check).
 
 ## Mainnet deployment and behavior
 
@@ -72,7 +75,9 @@ The ABIs come from [the mainnet repository at 083060a](https://github.com/identi
 
 Traders and Agents rank net results on finalized markets: actual claimed payout, or currently due unclaimed payout, minus all stakes. Voids contribute zero net. At least three finalized markets per token in the chosen period are required. “Win rate” means holding a winning stake divided by finalized markets, even if that market's net result is negative. Markets played includes voids. The seven-day window uses settlement time and includes every stake in each qualifying market.
 
-Agent IDs are unverified event labels; ID 0 conventionally means a person. When a wallet uses multiple IDs, its payout is apportioned to those IDs by winning stake, with integer residue assigned to the final winning ID in stable lexical order. Unique markets are counted once per ID. Creators rank by earned creator fees; creation, bet volume and fees use their own event timestamps for seven-day filtering. Settlers rank IMD rewards and count `SettlerRewarded` events across both collateral types; escalation has no reward event. Zero-amount emitted reward events count. Actions with no emitted reward event are not attributed to a settler.
+Agent IDs are unverified event labels; ID 0 conventionally means a person. When a wallet uses multiple IDs, its payout is apportioned to those IDs by winning stake, with integer residue assigned to the final winning ID in stable lexical order. Unique markets are counted once per ID. Creators rank by earned creator fees; creation, bet volume and fees use their own event timestamps for seven-day filtering.
+
+Settlers rank IMD rewards across both collateral types, summed from `SettlerRewarded`. Actions are counted independently from successful primary `OracleAsked`, `OutcomeProposed` (including replacements), `Finalized` and `Voided` events. Zero-reward actions remain in all-time and seven-day rankings. Escalation requests, bounty returns and claims do not count. A matching reward log identifies the caller; otherwise the site verifies a mined transaction to VerdictMarkets, its function and market ID before crediting its sender. Successful lookups are cached; failed lookups retry on refresh. The page reports unattributed actions explicitly. Indirect calls without reward logs require execution traces to identify the internal caller; the site does not credit the outer sender as a substitute.
 
 ENS is reverse-resolved and forward-checked before replacing an address; lookup failures retain the address. Wallet rows link to Etherscan. Rank sharing is a normal X intent link, with no embedded X script. No leaderboard blends token values or assumes an exchange rate.
 
